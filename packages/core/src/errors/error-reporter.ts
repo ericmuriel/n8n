@@ -1,14 +1,12 @@
+import { inTest, Logger } from '@n8n/backend-common';
+import type { InstanceType } from '@n8n/constants';
 import { Service } from '@n8n/di';
 import type { NodeOptions } from '@sentry/node';
-import { close } from '@sentry/node';
 import type { ErrorEvent, EventHint } from '@sentry/types';
 import { AxiosError } from 'axios';
 import type { ReportingOptions } from 'n8n-workflow';
 import { ApplicationError, ExecutionCancelledError, BaseError } from 'n8n-workflow';
 import { createHash } from 'node:crypto';
-
-import type { InstanceType } from '@/instance-settings';
-import { Logger } from '@/logging/logger';
 
 type ErrorReporterInitOptions = {
 	serverType: InstanceType | 'task_runner';
@@ -62,7 +60,10 @@ export class ErrorReporter {
 					meta = e.extra;
 				}
 				const msg = [e.message + context, stack].join('');
-				this.logger.error(msg, meta);
+				// Default to logging the error if option is not specified
+				if (options?.shouldBeLogged ?? true) {
+					this.logger.error(msg, meta);
+				}
 				e = e.cause as Error;
 			} while (e);
 		}
@@ -70,6 +71,7 @@ export class ErrorReporter {
 
 	async shutdown(timeoutInMs = 1000) {
 		clearTimeout(this.expirationTimer);
+		const { close } = await import('@sentry/node');
 		await close(timeoutInMs);
 	}
 
@@ -82,6 +84,8 @@ export class ErrorReporter {
 		serverName,
 		releaseDate,
 	}: ErrorReporterInitOptions) {
+		if (inTest) return;
+
 		process.on('uncaughtException', (error) => {
 			this.error(error);
 		});
@@ -132,7 +136,7 @@ export class ErrorReporter {
 			beforeSend: this.beforeSend.bind(this) as NodeOptions['beforeSend'],
 			integrations: (integrations) => [
 				...integrations.filter(({ name }) => enabledIntegrations.includes(name)),
-				rewriteFramesIntegration({ root: process.cwd() }),
+				rewriteFramesIntegration({ root: '/' }),
 				requestDataIntegration({
 					include: {
 						cookies: false,
