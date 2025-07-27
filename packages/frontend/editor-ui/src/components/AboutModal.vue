@@ -2,11 +2,11 @@
 import { createEventBus } from '@n8n/utils/event-bus';
 import Modal from './Modal.vue';
 import { ABOUT_MODAL_KEY } from '../constants';
-import { useRootStore } from '@n8n/stores/useRootStore';
+import { useRootStore } from '@/stores/root.store';
 import { useToast } from '@/composables/useToast';
 import { useClipboard } from '@/composables/useClipboard';
 import { useDebugInfo } from '@/composables/useDebugInfo';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 
 const modalBus = createEventBus();
 const toast = useToast();

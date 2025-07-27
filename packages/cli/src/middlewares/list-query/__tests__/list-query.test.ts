@@ -1,4 +1,3 @@
-import type { ListQueryDb } from '@n8n/db';
 import type { Response, NextFunction } from 'express';
 
 import { filterListQueryMiddleware } from '@/middlewares/list-query/filter';
@@ -12,7 +11,7 @@ import { sortByQueryMiddleware } from '../sort-by';
 describe('List query middleware', () => {
 	let mockReq: ListQuery.Request;
 	let mockRes: Response;
-	const nextFn: NextFunction = jest.fn();
+	let nextFn: NextFunction = jest.fn();
 	let args: [ListQuery.Request, Response, NextFunction];
 
 	let sendErrorResponse: jest.SpyInstance;
@@ -178,7 +177,7 @@ describe('List query middleware', () => {
 	});
 
 	describe('Query sort by', () => {
-		const validCases: Array<{ name: string; value: ListQueryDb.Workflow.SortOrder }> = [
+		const validCases: Array<{ name: string; value: ListQuery.Workflow.SortOrder }> = [
 			{
 				name: 'sorting by name asc',
 				value: 'name:asc',
@@ -237,7 +236,7 @@ describe('List query middleware', () => {
 
 		test.each(invalidCases)('should fail validation when $name', async ({ value }) => {
 			mockReq.query = {
-				sortBy: value as ListQueryDb.Workflow.SortOrder,
+				sortBy: value as ListQuery.Workflow.SortOrder,
 			};
 
 			await sortByQueryMiddleware(...args);

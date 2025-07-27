@@ -30,7 +30,7 @@
 					"executionTime": 0,
 					"source": [
 						{
-							"previousNode": "When clicking ‘Execute workflow’"
+							"previousNode": "When clicking ‘Test workflow’"
 						}
 					],
 					"executionStatus": "success",

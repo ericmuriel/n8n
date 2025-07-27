@@ -1,6 +1,6 @@
 import { createComponentRenderer } from '@/__tests__/render';
 import PushConnectionTracker from '@/components/PushConnectionTracker.vue';
-import { STORES } from '@n8n/stores';
+import { STORES } from '@/constants';
 import { createTestingPinia } from '@pinia/testing';
 import { setActivePinia } from 'pinia';
 
@@ -29,9 +29,7 @@ describe('PushConnectionTracker', () => {
 		});
 		setActivePinia(pinia);
 
-		return createComponentRenderer(PushConnectionTracker, {
-			global: { stubs: { N8nIcon: true } },
-		})();
+		return createComponentRenderer(PushConnectionTracker)();
 	};
 
 	it('should not render error when connected and connection requested', () => {

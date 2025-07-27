@@ -11,10 +11,9 @@ import type {
 	BaseNode,
 	CredentialUsages,
 } from '@/views/SetupWorkflowFromTemplateView/useCredentialSetupState';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { useTelemetry } from '@/composables/useTelemetry';
 import type { TemplateCredentialKey } from '@/utils/templates/templateTransforms';
-import { I18nT } from 'vue-i18n';
 
 // Props
 const props = withDefaults(
@@ -63,11 +62,17 @@ const nodeNames = computed(() => {
 //#region Methods
 
 const onCredentialModalOpened = () => {
-	telemetry.track('User opened Credential modal', {
-		source: 'cred_setup',
-		credentialType: props.credentials.credentialType,
-		new_credential: !props.selectedCredentialId,
-	});
+	telemetry.track(
+		'User opened Credential modal',
+		{
+			source: 'cred_setup',
+			credentialType: props.credentials.credentialType,
+			new_credential: !props.selectedCredentialId,
+		},
+		{
+			withPostHog: true,
+		},
+	);
 };
 
 //#endregion Methods
@@ -84,14 +89,14 @@ const onCredentialModalOpened = () => {
 		</N8nHeading>
 
 		<p :class="$style.description" data-test-id="credential-step-description">
-			<I18nT
+			<i18n-t
 				tag="span"
 				keypath="templateSetup.credential.description"
 				:plural="credentials.usedBy.length"
 				scope="global"
 			>
 				<span v-n8n-html="nodeNames" />
-			</I18nT>
+			</i18n-t>
 		</p>
 
 		<div :class="$style.credentials">

@@ -1,5 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
+
+import { testWorkflows } from '@test/nodes/Helpers';
 
 jest.mock('jsonwebtoken', () => ({
 	sign: jest.fn().mockReturnValue('signature'),
@@ -34,7 +35,6 @@ describe('Test Google BigQuery V2, insert define manually', () => {
 		)
 		.reply(200, [{ kind: 'bigquery#tableDataInsertAllResponse' }]);
 
-	new NodeTestHarness().setupTests({
-		workflowFiles: ['insert.manualMode.workflow.json'],
-	});
+	const workflows = ['nodes/Google/BigQuery/test/v2/node/insert.manualMode.workflow.json'];
+	testWorkflows(workflows);
 });

@@ -7,8 +7,8 @@ import {
 	hasDestinationId,
 	saveDestinationToDb,
 	sendTestMessageToDestination,
-} from '@n8n/rest-api-client/api/eventbus.ee';
-import { useRootStore } from '@n8n/stores/useRootStore';
+} from '@/api/eventbus.ee';
+import { useRootStore } from './root.store';
 import { ref } from 'vue';
 
 export interface EventSelectionItem {

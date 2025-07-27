@@ -1,9 +1,7 @@
-import { LicenseState, ModuleRegistry } from '@n8n/backend-common';
-import { mockInstance, mockLogger, testModules, testDb } from '@n8n/backend-test-utils';
-import type { APIRequest, User } from '@n8n/db';
 import { Container } from '@n8n/di';
 import cookieParser from 'cookie-parser';
 import express from 'express';
+import { Logger } from 'n8n-core';
 import type superagent from 'superagent';
 import request from 'supertest';
 import { URL } from 'url';
@@ -11,15 +9,19 @@ import { URL } from 'url';
 import { AuthService } from '@/auth/auth.service';
 import config from '@/config';
 import { AUTH_COOKIE_NAME } from '@/constants';
-import { ControllerRegistry } from '@/controller.registry';
+import type { User } from '@/databases/entities/user';
+import { ControllerRegistry } from '@/decorators';
 import { License } from '@/license';
 import { rawBodyReader, bodyParser } from '@/middlewares';
 import { PostHogClient } from '@/posthog';
 import { Push } from '@/push';
+import type { APIRequest } from '@/requests';
 import { Telemetry } from '@/telemetry';
-import { LicenseMocker } from '@test-integration/license';
 
+import { mockInstance } from '../../../shared/mocking';
 import { PUBLIC_API_REST_PATH_SEGMENT, REST_PATH_SEGMENT } from '../constants';
+import { LicenseMocker } from '../license';
+import * as testDb from '../test-db';
 import type { SetupProps, TestServer } from '../types';
 
 /**
@@ -54,11 +56,7 @@ function createAgent(
 	if (withRestSegment) void agent.use(prefix(REST_PATH_SEGMENT));
 
 	if (options?.auth && options?.user) {
-		const token = Container.get(AuthService).issueJWT(
-			options.user,
-			options.user.mfaEnabled,
-			browserId,
-		);
+		const token = Container.get(AuthService).issueJWT(options.user, browserId);
 		agent.jar.setCookie(`${AUTH_COOKIE_NAME}=${token}`);
 	}
 	return agent;
@@ -93,19 +91,17 @@ export const setupTestServer = ({
 	endpointGroups,
 	enabledFeatures,
 	quotas,
-	modules,
 }: SetupProps): TestServer => {
 	const app = express();
 	app.use(rawBodyReader);
 	app.use(cookieParser());
-	app.set('query parser', 'extended');
 	app.use((req: APIRequest, _, next) => {
 		req.browserId = browserId;
 		next();
 	});
 
 	// Mock all telemetry and logging
-	mockLogger();
+	mockInstance(Logger);
 	mockInstance(PostHogClient);
 	mockInstance(Push);
 	mockInstance(Telemetry);
@@ -124,15 +120,12 @@ export const setupTestServer = ({
 
 	// eslint-disable-next-line complexity
 	beforeAll(async () => {
-		if (modules) await testModules.loadModules(modules);
 		await testDb.init();
 
 		config.set('userManagement.jwtSecret', 'My JWT secret');
 		config.set('userManagement.isInstanceOwnerSetUp', true);
 
 		testServer.license.mock(Container.get(License));
-		testServer.license.mockLicenseState(Container.get(LicenseState));
-
 		if (enabledFeatures) {
 			testServer.license.setDefaults({
 				features: enabledFeatures,
@@ -255,6 +248,10 @@ export const setupTestServer = ({
 						await import('@/controllers/tags.controller');
 						break;
 
+					case 'externalSecrets':
+						await import('@/external-secrets.ee/external-secrets.controller.ee');
+						break;
+
 					case 'workflowHistory':
 						await import('@/workflows/workflow-history.ee/workflow-history.controller.ee');
 						break;
@@ -284,6 +281,7 @@ export const setupTestServer = ({
 						break;
 
 					case 'evaluation':
+						await import('@/evaluation.ee/test-definitions.controller.ee');
 						await import('@/evaluation.ee/test-runs.controller.ee');
 						break;
 
@@ -293,15 +291,11 @@ export const setupTestServer = ({
 					case 'folder':
 						await import('@/controllers/folder.controller');
 
-					case 'externalSecrets':
-						await import('@/modules/external-secrets.ee/external-secrets.module');
-
 					case 'insights':
-						await import('@/modules/insights/insights.module');
+						await import('@/modules/insights/insights.controller');
 				}
 			}
 
-			await Container.get(ModuleRegistry).initModules();
 			Container.get(ControllerRegistry).activate(app);
 		}
 	});

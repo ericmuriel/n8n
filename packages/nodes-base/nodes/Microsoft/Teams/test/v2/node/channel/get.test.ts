@@ -1,7 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
 
-import { credentials } from '../../../credentials';
+import { testWorkflows } from '@test/nodes/Helpers';
 
 describe('Test MicrosoftTeamsV2, channel => get', () => {
 	nock('https://graph.microsoft.com')
@@ -23,8 +22,6 @@ describe('Test MicrosoftTeamsV2, channel => get', () => {
 			membershipType: 'standard',
 		});
 
-	new NodeTestHarness().setupTests({
-		credentials,
-		workflowFiles: ['get.workflow.json'],
-	});
+	const workflows = ['nodes/Microsoft/Teams/test/v2/node/channel/get.workflow.json'];
+	testWorkflows(workflows);
 });

@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import { Z } from 'zod-class';
 
-import { InsightsDateFilterDto } from './date-filter.dto';
-import { createTakeValidator, paginationSchema } from '../pagination/pagination.dto';
-
-export const MAX_ITEMS_PER_PAGE = 100;
-
 const VALID_SORT_OPTIONS = [
 	'total:asc',
 	'total:desc',
@@ -21,21 +16,37 @@ const VALID_SORT_OPTIONS = [
 	'runTime:desc',
 	'averageRunTime:asc',
 	'averageRunTime:desc',
-	'workflowName:asc',
-	'workflowName:desc',
 ] as const;
 
 // ---------------------
 // Parameter Validators
 // ---------------------
 
+// Skip parameter validation
+const skipValidator = z
+	.string()
+	.optional()
+	.transform((val) => (val ? parseInt(val, 10) : 0))
+	.refine((val) => !isNaN(val), {
+		message: 'Skip must be a valid number',
+	});
+
+// Take parameter validation
+const takeValidator = z
+	.string()
+	.optional()
+	.transform((val) => (val ? parseInt(val, 10) : 10))
+	.refine((val) => !isNaN(val), {
+		message: 'Take must be a valid number',
+	});
+
+// SortBy parameter validation
 const sortByValidator = z
 	.enum(VALID_SORT_OPTIONS, { message: `sortBy must be one of: ${VALID_SORT_OPTIONS.join(', ')}` })
 	.optional();
 
 export class ListInsightsWorkflowQueryDto extends Z.class({
-	...paginationSchema,
-	take: createTakeValidator(MAX_ITEMS_PER_PAGE),
-	dateRange: InsightsDateFilterDto.shape.dateRange,
+	skip: skipValidator,
+	take: takeValidator,
 	sortBy: sortByValidator,
 }) {}

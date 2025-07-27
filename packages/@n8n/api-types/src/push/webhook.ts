@@ -1,4 +1,4 @@
-export type TestWebhookDeleted = {
+type TestWebhookDeleted = {
 	type: 'testWebhookDeleted';
 	data: {
 		executionId?: string;
@@ -6,7 +6,7 @@ export type TestWebhookDeleted = {
 	};
 };
 
-export type TestWebhookReceived = {
+type TestWebhookReceived = {
 	type: 'testWebhookReceived';
 	data: {
 		executionId: string;

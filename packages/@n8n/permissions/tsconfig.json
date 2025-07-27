@@ -9,5 +9,5 @@
 		},
 		"tsBuildInfoFile": "dist/typecheck.tsbuildinfo"
 	},
-	"include": ["src/**/*.ts"]
+	"include": ["src/**/*.ts", "test/**/*.ts"]
 }

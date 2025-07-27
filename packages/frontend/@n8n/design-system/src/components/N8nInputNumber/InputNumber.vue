@@ -20,15 +20,7 @@ const props = withDefaults(defineProps<InputNumberProps>(), {
 	max: Infinity,
 });
 
-const sizeMap: Record<InputSize, ElementPlusSizePropType> = {
-	mini: 'small',
-	small: 'small',
-	medium: 'default',
-	large: 'large',
-	xlarge: 'large',
-};
-
-const resolvedSize = computed(() => (props.size ? sizeMap[props.size] : undefined));
+const resolvedSize = computed(() => props.size as ElementPlusSizePropType);
 </script>
 
 <template>

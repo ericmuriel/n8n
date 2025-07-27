@@ -8,9 +8,7 @@ import type { EventBus } from '@n8n/utils/event-bus';
 import { createEventBus } from '@n8n/utils/event-bus';
 import type { CanvasEventBusEvents } from '@/types';
 import { useVueFlow } from '@vue-flow/core';
-import { throttledRef } from '@vueuse/core';
-import { useSettingsStore } from '@/stores/settings.store';
-import ExperimentalNodeDetailsDrawer from './experimental/components/ExperimentalNodeDetailsDrawer.vue';
+import { debouncedRef } from '@vueuse/core';
 
 defineOptions({
 	inheritAttrs: false,
@@ -36,9 +34,8 @@ const props = withDefaults(
 );
 
 const $style = useCssModule();
-const settingsStore = useSettingsStore();
 
-const { onNodesInitialized, getSelectedNodes } = useVueFlow(props.id);
+const { onNodesInitialized } = useVueFlow({ id: props.id });
 
 const workflow = toRef(props, 'workflow');
 const workflowObject = toRef(props, 'workflowObject');
@@ -64,8 +61,8 @@ onNodesInitialized(() => {
 	}
 });
 
-const mappedNodesThrottled = throttledRef(mappedNodes, 200);
-const mappedConnectionsThrottled = throttledRef(mappedConnections, 200);
+const mappedNodesDebounced = debouncedRef(mappedNodes, 200, { maxWait: 50 });
+const mappedConnectionsDebounced = debouncedRef(mappedConnections, 200, { maxWait: 50 });
 </script>
 
 <template>
@@ -74,25 +71,20 @@ const mappedConnectionsThrottled = throttledRef(mappedConnections, 200);
 			<Canvas
 				v-if="workflow"
 				:id="id"
-				:nodes="executing ? mappedNodesThrottled : mappedNodes"
-				:connections="executing ? mappedConnectionsThrottled : mappedConnections"
+				:nodes="executing ? mappedNodesDebounced : mappedNodes"
+				:connections="executing ? mappedConnectionsDebounced : mappedConnections"
 				:event-bus="eventBus"
 				:read-only="readOnly"
-				:executing="executing"
 				v-bind="$attrs"
 			/>
 		</div>
 		<slot />
-		<ExperimentalNodeDetailsDrawer
-			v-if="settingsStore.experimental__dockedNodeSettingsEnabled && !props.readOnly"
-			:selected-nodes="getSelectedNodes"
-		/>
 	</div>
 </template>
 
 <style lang="scss" module>
 .wrapper {
-	display: flex;
+	display: block;
 	position: relative;
 	width: 100%;
 	height: 100%;
@@ -104,7 +96,5 @@ const mappedConnectionsThrottled = throttledRef(mappedConnections, 200);
 	height: 100%;
 	position: relative;
 	display: block;
-	align-items: stretch;
-	justify-content: stretch;
 }
 </style>

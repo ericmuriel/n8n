@@ -40,7 +40,6 @@ export const newNode = (opts: Partial<INode> = {}): INode => ({
 export const newTaskData = (opts: Partial<ITaskData> & Pick<ITaskData, 'source'>): ITaskData => ({
 	startTime: Date.now(),
 	executionTime: 0,
-	executionIndex: 0,
 	executionStatus: 'success',
 	...opts,
 });

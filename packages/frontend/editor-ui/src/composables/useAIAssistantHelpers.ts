@@ -8,6 +8,7 @@ import type {
 	INode,
 } from 'n8n-workflow';
 import { useWorkflowHelpers } from './useWorkflowHelpers';
+import { useRouter } from 'vue-router';
 import { useNDVStore } from '@/stores/ndv.store';
 import { useNodeTypesStore } from '@/stores/nodeTypes.store';
 import { executionDataToJson, getMainAuthField, getNodeAuthOptions } from '@/utils/nodeTypesUtils';
@@ -15,7 +16,7 @@ import type { ChatRequest } from '@/types/assistant.types';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import { useDataSchema } from './useDataSchema';
 import { AI_ASSISTANT_MAX_CONTENT_LENGTH, VIEWS } from '@/constants';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from './useI18n';
 import type { IWorkflowDb } from '@/Interface';
 import { getObjectSizeInKB } from '@/utils/objectUtils';
 
@@ -29,7 +30,7 @@ export const useAIAssistantHelpers = () => {
 	const nodeTypesStore = useNodeTypesStore();
 	const workflowsStore = useWorkflowsStore();
 
-	const workflowHelpers = useWorkflowHelpers();
+	const workflowHelpers = useWorkflowHelpers({ router: useRouter() });
 	const locale = useI18n();
 
 	/**
@@ -180,7 +181,7 @@ export const useAIAssistantHelpers = () => {
 	 * @param nodeNames The names of the nodes to get the schema for
 	 * @returns An array of NodeExecutionSchema objects
 	 */
-	function getNodesSchemas(nodeNames: string[], excludeValues?: boolean) {
+	function getNodesSchemas(nodeNames: string[]) {
 		const schemas: ChatRequest.NodeExecutionSchema[] = [];
 		for (const name of nodeNames) {
 			const node = workflowsStore.getNodeByName(name);
@@ -188,10 +189,7 @@ export const useAIAssistantHelpers = () => {
 				continue;
 			}
 			const { getSchemaForExecutionData, getInputDataWithPinned } = useDataSchema();
-			const schema = getSchemaForExecutionData(
-				executionDataToJson(getInputDataWithPinned(node)),
-				excludeValues,
-			);
+			const schema = getSchemaForExecutionData(executionDataToJson(getInputDataWithPinned(node)));
 			schemas.push({
 				nodeName: node.name,
 				schema,
@@ -265,10 +263,7 @@ export const useAIAssistantHelpers = () => {
 		payload: ChatRequest.RequestPayload,
 		size = AI_ASSISTANT_MAX_CONTENT_LENGTH,
 	): void => {
-		// Create a deep copy to avoid mutating the original payload
-		const payloadCopy = deepCopy(payload);
-		const requestPayload = payloadCopy.payload;
-
+		const requestPayload = payload.payload;
 		// For support chat, remove parameters from the active node object and all nodes in the workflow
 		if (requestPayload.type === 'init-support-chat') {
 			if (requestPayload.context?.activeNodeInfo?.node) {
@@ -291,7 +286,7 @@ export const useAIAssistantHelpers = () => {
 				}
 			}
 			// If the payload is still too big, remove the whole context object
-			if (getRequestPayloadSize(payloadCopy) > size) {
+			if (getRequestPayloadSize(payload) > size) {
 				requestPayload.context = undefined;
 			}
 			// For error helper, remove parameters from the active node object
@@ -300,12 +295,9 @@ export const useAIAssistantHelpers = () => {
 			requestPayload.node.parameters = {};
 		}
 		// If the payload is still too big, throw an error that will be shown to the user
-		if (getRequestPayloadSize(payloadCopy) > size) {
+		if (getRequestPayloadSize(payload) > size) {
 			throw new Error(locale.baseText('aiAssistant.payloadTooBig.message'));
 		}
-
-		// Apply the trimmed payload back to the original object
-		payload.payload = payloadCopy.payload;
 	};
 
 	/**

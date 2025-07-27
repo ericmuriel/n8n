@@ -36,14 +36,10 @@ export class WorkflowsPage extends BasePage {
 		workflowCardActions: (workflowName: string) =>
 			this.getters.workflowCard(workflowName).findChildByTestId('workflow-card-actions'),
 		workflowActionItem: (action: string) => cy.getByTestId(`action-${action}`).filter(':visible'),
-		workflowArchiveButton: () =>
-			cy.getByTestId('action-toggle-dropdown').filter(':visible').contains('Archive'),
-		workflowUnarchiveButton: () =>
-			cy.getByTestId('action-toggle-dropdown').filter(':visible').contains('Unarchive'),
 		workflowDeleteButton: () =>
 			cy.getByTestId('action-toggle-dropdown').filter(':visible').contains('Delete'),
 		workflowMoveButton: () =>
-			cy.getByTestId('action-toggle-dropdown').filter(':visible').contains('Move'),
+			cy.getByTestId('action-toggle-dropdown').filter(':visible').contains('Change owner'),
 		workflowFilterButton: () => cy.getByTestId('resources-list-filters-trigger').filter(':visible'),
 		workflowTagsDropdown: () => cy.getByTestId('tags-dropdown'),
 		workflowTagItem: (tag: string) => cy.getByTestId('tag').contains(tag),
@@ -51,7 +47,6 @@ export class WorkflowsPage extends BasePage {
 		workflowStatusItem: (status: string) => cy.getByTestId('status').contains(status),
 		workflowOwnershipDropdown: () => cy.getByTestId('user-select-trigger'),
 		workflowOwner: (email: string) => cy.getByTestId('user-email').contains(email),
-		workflowArchivedCheckbox: () => cy.getByTestId('show-archived-checkbox'),
 		workflowResetFilters: () => cy.getByTestId('workflows-filter-reset'),
 		workflowSortDropdown: () => cy.getByTestId('resources-list-sort'),
 		workflowSortItem: (sort: string) =>

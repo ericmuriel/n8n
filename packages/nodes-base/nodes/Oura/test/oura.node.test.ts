@@ -1,4 +1,3 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import type {
 	IExecuteFunctions,
 	IHookFunctions,
@@ -7,6 +6,8 @@ import type {
 	INode,
 } from 'n8n-workflow';
 import nock from 'nock';
+
+import { getWorkflowFilenames, testWorkflows } from '@test/nodes/Helpers';
 
 import { profileResponse } from './apiResponses';
 import { ouraApiRequest } from '../GenericFunctions';
@@ -50,7 +51,6 @@ describe('Oura', () => {
 			});
 		});
 	});
-
 	describe('Run Oura workflow', () => {
 		beforeAll(() => {
 			nock('https://api.ouraring.com/v2')
@@ -58,6 +58,7 @@ describe('Oura', () => {
 				.reply(200, profileResponse);
 		});
 
-		new NodeTestHarness().setupTests();
+		const workflows = getWorkflowFilenames(__dirname);
+		testWorkflows(workflows);
 	});
 });

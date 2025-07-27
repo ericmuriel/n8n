@@ -1,9 +1,7 @@
 <script lang="ts" setup>
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/Modal.vue';
 import { useUIStore } from '@/stores/ui.store';
-import type { ButtonType } from '@n8n/design-system';
-import { I18nT } from 'vue-i18n';
 
 const props = defineProps<{
 	modalName: string;
@@ -13,7 +11,7 @@ const props = defineProps<{
 		beforeClose: () => void;
 		buttons: Array<{
 			text: string;
-			type: ButtonType;
+			type: string;
 			action: () => void;
 		}>;
 	};
@@ -37,25 +35,24 @@ const closeModal = () => {
 		<template #content>
 			<div>
 				<n8n-text>
-					<I18nT keypath="workflowHistory.action.restore.modal.subtitle" tag="span" scope="global">
+					<i18n-t keypath="workflowHistory.action.restore.modal.subtitle" tag="span">
 						<template #date>
 							<strong>{{ props.data.formattedCreatedAt }}</strong>
 						</template>
-					</I18nT>
+					</i18n-t>
 					<br />
 					<br />
-					<I18nT
+					<i18n-t
 						v-if="props.data.isWorkflowActivated"
 						keypath="workflowHistory.action.restore.modal.text"
 						tag="span"
-						scope="global"
 					>
 						<template #buttonText>
 							&ldquo;{{
 								i18n.baseText('workflowHistory.action.restore.modal.button.deactivateAndRestore')
 							}}&rdquo;
 						</template>
-					</I18nT>
+					</i18n-t>
 				</n8n-text>
 			</div>
 		</template>

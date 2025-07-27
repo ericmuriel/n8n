@@ -1,9 +1,3 @@
-import { mockLogger, mockInstance } from '@n8n/backend-test-utils';
-import { GlobalConfig } from '@n8n/config';
-import { LDAP_FEATURE_NAME, type LdapConfig } from '@n8n/constants';
-import type { Settings } from '@n8n/db';
-import { AuthIdentityRepository, SettingsRepository } from '@n8n/db';
-import { Container } from '@n8n/di';
 import { QueryFailedError } from '@n8n/typeorm';
 import { mock } from 'jest-mock-extended';
 import { Client } from 'ldapts';
@@ -11,9 +5,18 @@ import type { Cipher } from 'n8n-core';
 import { randomString } from 'n8n-workflow';
 
 import config from '@/config';
+import type { Settings } from '@/databases/entities/settings';
+import { AuthIdentityRepository } from '@/databases/repositories/auth-identity.repository';
+import { SettingsRepository } from '@/databases/repositories/settings.repository';
 import type { EventService } from '@/events/event.service';
+import { mockInstance, mockLogger } from '@test/mocking';
 
-import { BINARY_AD_ATTRIBUTES } from '../constants';
+import {
+	BINARY_AD_ATTRIBUTES,
+	LDAP_LOGIN_ENABLED,
+	LDAP_LOGIN_LABEL,
+	LDAP_FEATURE_NAME,
+} from '../constants';
 import {
 	getLdapIds,
 	createFilter,
@@ -25,6 +28,7 @@ import {
 	resolveEntryBinaryAttributes,
 } from '../helpers.ee';
 import { LdapService } from '../ldap.service.ee';
+import type { LdapConfig } from '../types';
 
 // Mock ldapts client
 jest.mock('ldapts', () => {
@@ -52,15 +56,6 @@ jest.mock('n8n-workflow', () => ({
 	randomString: jest.fn(),
 }));
 
-mockInstance(GlobalConfig, {
-	sso: {
-		ldap: {
-			loginEnabled: true,
-			loginLabel: 'fakeLoginLabel',
-		},
-	},
-});
-
 describe('LdapService', () => {
 	const ldapConfig: LdapConfig = {
 		loginEnabled: true,
@@ -84,7 +79,7 @@ describe('LdapService', () => {
 		searchTimeout: 6,
 	};
 
-	const settingsRepository = mockInstance(SettingsRepository);
+	let settingsRepository = mockInstance(SettingsRepository);
 
 	beforeAll(() => {
 		// Need fake timers to avoid setInterval
@@ -126,12 +121,13 @@ describe('LdapService', () => {
 
 			await ldapService.init();
 
+			expect(configSetSpy).toHaveBeenNthCalledWith(1, LDAP_LOGIN_ENABLED, ldapConfig.loginEnabled);
 			expect(configSetSpy).toHaveBeenNthCalledWith(
-				1,
+				2,
 				'userManagement.authenticationMethod',
 				'ldap',
 			);
-			expect(Container.get(GlobalConfig).sso.ldap.loginLabel).toBe(ldapConfig.loginLabel);
+			expect(configSetSpy).toHaveBeenNthCalledWith(3, LDAP_LOGIN_LABEL, ldapConfig.loginLabel);
 		});
 
 		it('should set expected configuration variables from LDAP config if LDAP is disabled', async () => {
@@ -143,12 +139,13 @@ describe('LdapService', () => {
 
 			await ldapService.init();
 
+			expect(configSetSpy).toHaveBeenNthCalledWith(1, LDAP_LOGIN_ENABLED, givenConfig.loginEnabled);
 			expect(configSetSpy).toHaveBeenNthCalledWith(
-				1,
+				2,
 				'userManagement.authenticationMethod',
 				'email',
 			);
-			expect(Container.get(GlobalConfig).sso.ldap.loginLabel).toBe(ldapConfig.loginLabel);
+			expect(configSetSpy).toHaveBeenNthCalledWith(3, LDAP_LOGIN_LABEL, givenConfig.loginLabel);
 		});
 
 		it('should show logger warning if authentication method is not ldap or email', async () => {
@@ -364,14 +361,17 @@ describe('LdapService', () => {
 
 		it('should update the LDAP login label in the config', async () => {
 			mockSettingsRespositoryFindOneByOrFail(ldapConfig);
+
 			mockInstance(AuthIdentityRepository, {
 				find: jest.fn().mockResolvedValue([{ user: { id: 'userId' } }]),
 				delete: jest.fn(),
 			});
+
 			const cipherMock = mock<Cipher>({
 				encrypt: jest.fn().mockReturnValue('encryptedPassword'),
 			});
-			const globalConfig = Container.get(GlobalConfig);
+			const configSetSpy = jest.spyOn(config, 'set');
+
 			config.set('userManagement.authenticationMethod', 'email');
 			const ldapService = new LdapService(mockLogger(), settingsRepository, cipherMock, mock());
 
@@ -382,7 +382,8 @@ describe('LdapService', () => {
 				loginLabel: 'newLoginLabel',
 			};
 			await ldapService.updateConfig(newConfig);
-			expect(globalConfig.sso.ldap.loginLabel).toBe(newConfig.loginLabel);
+
+			expect(configSetSpy).toHaveBeenNthCalledWith(4, LDAP_LOGIN_LABEL, newConfig.loginLabel);
 		});
 	});
 

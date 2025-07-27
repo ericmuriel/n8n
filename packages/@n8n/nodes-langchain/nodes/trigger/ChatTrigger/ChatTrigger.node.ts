@@ -1,5 +1,5 @@
 import type { BaseChatMemory } from '@langchain/community/memory/chat_memory';
-import pick from 'lodash/pick';
+import { pick } from 'lodash';
 import { Node, NodeConnectionTypes } from 'n8n-workflow';
 import type {
 	IDataObject,
@@ -35,176 +35,6 @@ const allowedFileMimeTypeOption: INodeProperties = {
 		'Allowed file types for upload. Comma-separated list of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types" target="_blank">MIME types</a>.',
 };
 
-const respondToWebhookResponseMode = {
-	name: "Using 'Respond to Webhook' Node",
-	value: 'responseNode',
-	description: 'Response defined in that node',
-};
-
-const lastNodeResponseMode = {
-	name: 'When Last Node Finishes',
-	value: 'lastNode',
-	description: 'Returns data of the last-executed node',
-};
-
-const streamingResponseMode = {
-	name: 'Streaming Response',
-	value: 'streaming',
-	description: 'Streaming response from specified nodes (e.g. Agents)',
-};
-
-const respondNodesResponseMode = {
-	name: 'Using Response Nodes',
-	value: 'responseNodes',
-	description:
-		"Send responses to the chat by using 'Respond to Chat' or 'Respond to Webhook' nodes",
-};
-
-const commonOptionsFields: INodeProperties[] = [
-	// CORS parameters are only valid for when chat is used in hosted or webhook mode
-	{
-		displayName: 'Allowed Origins (CORS)',
-		name: 'allowedOrigins',
-		type: 'string',
-		default: '*',
-		description:
-			'Comma-separated list of URLs allowed for cross-origin non-preflight requests. Use * (default) to allow all origins.',
-		displayOptions: {
-			show: {
-				'/mode': ['hostedChat', 'webhook'],
-			},
-		},
-	},
-	{
-		...allowFileUploadsOption,
-		displayOptions: {
-			show: {
-				'/mode': ['hostedChat'],
-			},
-		},
-	},
-	{
-		...allowedFileMimeTypeOption,
-		displayOptions: {
-			show: {
-				'/mode': ['hostedChat'],
-			},
-		},
-	},
-	{
-		displayName: 'Input Placeholder',
-		name: 'inputPlaceholder',
-		type: 'string',
-		displayOptions: {
-			show: {
-				'/mode': ['hostedChat'],
-			},
-		},
-		default: 'Type your question..',
-		placeholder: 'e.g. Type your message here',
-		description: 'Shown as placeholder text in the chat input field',
-	},
-	{
-		displayName: 'Load Previous Session',
-		name: 'loadPreviousSession',
-		type: 'options',
-		options: [
-			{
-				name: 'Off',
-				value: 'notSupported',
-				description: 'Loading messages of previous session is turned off',
-			},
-			{
-				name: 'From Memory',
-				value: 'memory',
-				description: 'Load session messages from memory',
-			},
-			{
-				name: 'Manually',
-				value: 'manually',
-				description: 'Manually return messages of session',
-			},
-		],
-		default: 'notSupported',
-		description: 'If loading messages of a previous session should be enabled',
-	},
-	{
-		displayName: 'Require Button Click to Start Chat',
-		name: 'showWelcomeScreen',
-		type: 'boolean',
-		displayOptions: {
-			show: {
-				'/mode': ['hostedChat'],
-			},
-		},
-		default: false,
-		description: 'Whether to show the welcome screen at the start of the chat',
-	},
-	{
-		displayName: 'Start Conversation Button Text',
-		name: 'getStarted',
-		type: 'string',
-		displayOptions: {
-			show: {
-				showWelcomeScreen: [true],
-				'/mode': ['hostedChat'],
-			},
-		},
-		default: 'New Conversation',
-		placeholder: 'e.g. New Conversation',
-		description: 'Shown as part of the welcome screen, in the middle of the chat window',
-	},
-	{
-		displayName: 'Subtitle',
-		name: 'subtitle',
-		type: 'string',
-		displayOptions: {
-			show: {
-				'/mode': ['hostedChat'],
-			},
-		},
-		default: "Start a chat. We're here to help you 24/7.",
-		placeholder: "e.g. We're here for you",
-		description: 'Shown at the top of the chat, under the title',
-	},
-	{
-		displayName: 'Title',
-		name: 'title',
-		type: 'string',
-		displayOptions: {
-			show: {
-				'/mode': ['hostedChat'],
-			},
-		},
-		default: 'Hi there! 👋',
-		placeholder: 'e.g. Welcome',
-		description: 'Shown at the top of the chat',
-	},
-	{
-		displayName: 'Custom Chat Styling',
-		name: 'customCss',
-		type: 'string',
-		typeOptions: {
-			rows: 10,
-			editor: 'cssEditor',
-		},
-		displayOptions: {
-			show: {
-				'/mode': ['hostedChat'],
-			},
-		},
-		default: `
-${cssVariables}
-
-/* You can override any class styles, too. Right-click inspect in Chat UI to find class to override. */
-.chat-message {
-	max-width: 50%;
-}
-`.trim(),
-		description: 'Override default styling of the public chat interface with CSS',
-	},
-];
-
 export class ChatTrigger extends Node {
 	description: INodeTypeDescription = {
 		displayName: 'Chat Trigger',
@@ -212,8 +42,7 @@ export class ChatTrigger extends Node {
 		icon: 'fa:comments',
 		iconColor: 'black',
 		group: ['trigger'],
-		version: [1, 1.1, 1.2, 1.3],
-		defaultVersion: 1.3,
+		version: [1, 1.1],
 		description: 'Runs the workflow when an n8n generated webchat is submitted',
 		defaults: {
 			name: 'When chat message received',
@@ -392,14 +221,13 @@ export class ChatTrigger extends Node {
 				displayOptions: {
 					show: {
 						public: [false],
-						'@version': [1, 1.1],
+						'@version': [{ _cnd: { gte: 1.1 } }],
 					},
 				},
 				placeholder: 'Add Field',
 				default: {},
 				options: [allowFileUploadsOption, allowedFileMimeTypeOption],
 			},
-			// Options for versions 1.0 and 1.1 (without streaming)
 			{
 				displayName: 'Options',
 				name: 'options',
@@ -408,106 +236,171 @@ export class ChatTrigger extends Node {
 					show: {
 						mode: ['hostedChat', 'webhook'],
 						public: [true],
-						'@version': [1, 1.1],
 					},
 				},
 				placeholder: 'Add Field',
 				default: {},
 				options: [
-					...commonOptionsFields,
+					// CORS parameters are only valid for when chat is used in hosted or webhook mode
+					{
+						displayName: 'Allowed Origins (CORS)',
+						name: 'allowedOrigins',
+						type: 'string',
+						default: '*',
+						description:
+							'Comma-separated list of URLs allowed for cross-origin non-preflight requests. Use * (default) to allow all origins.',
+						displayOptions: {
+							show: {
+								'/mode': ['hostedChat', 'webhook'],
+							},
+						},
+					},
+					{
+						...allowFileUploadsOption,
+						displayOptions: {
+							show: {
+								'/mode': ['hostedChat'],
+							},
+						},
+					},
+					{
+						...allowedFileMimeTypeOption,
+						displayOptions: {
+							show: {
+								'/mode': ['hostedChat'],
+							},
+						},
+					},
+					{
+						displayName: 'Input Placeholder',
+						name: 'inputPlaceholder',
+						type: 'string',
+						displayOptions: {
+							show: {
+								'/mode': ['hostedChat'],
+							},
+						},
+						default: 'Type your question..',
+						placeholder: 'e.g. Type your message here',
+						description: 'Shown as placeholder text in the chat input field',
+					},
+					{
+						displayName: 'Load Previous Session',
+						name: 'loadPreviousSession',
+						type: 'options',
+						options: [
+							{
+								name: 'Off',
+								value: 'notSupported',
+								description: 'Loading messages of previous session is turned off',
+							},
+							{
+								name: 'From Memory',
+								value: 'memory',
+								description: 'Load session messages from memory',
+							},
+							{
+								name: 'Manually',
+								value: 'manually',
+								description: 'Manually return messages of session',
+							},
+						],
+						default: 'notSupported',
+						description: 'If loading messages of a previous session should be enabled',
+					},
 					{
 						displayName: 'Response Mode',
 						name: 'responseMode',
 						type: 'options',
-						options: [lastNodeResponseMode, respondToWebhookResponseMode],
+						options: [
+							{
+								name: 'When Last Node Finishes',
+								value: 'lastNode',
+								description: 'Returns data of the last-executed node',
+							},
+							{
+								name: "Using 'Respond to Webhook' Node",
+								value: 'responseNode',
+								description: 'Response defined in that node',
+							},
+						],
 						default: 'lastNode',
 						description: 'When and how to respond to the webhook',
 					},
-				],
-			},
-			// Options for version 1.2 (with streaming)
-			{
-				displayName: 'Options',
-				name: 'options',
-				type: 'collection',
-				displayOptions: {
-					show: {
-						mode: ['hostedChat', 'webhook'],
-						public: [true],
-						'@version': [1.2],
-					},
-				},
-				placeholder: 'Add Field',
-				default: {},
-				options: [
-					...commonOptionsFields,
 					{
-						displayName: 'Response Mode',
-						name: 'responseMode',
-						type: 'options',
-						options: [lastNodeResponseMode, respondToWebhookResponseMode, streamingResponseMode],
-						default: 'lastNode',
-						description: 'When and how to respond to the webhook',
-					},
-				],
-			},
-			{
-				displayName: 'Options',
-				name: 'options',
-				type: 'collection',
-				displayOptions: {
-					show: {
-						public: [false],
-						'@version': [{ _cnd: { gte: 1.3 } }],
-					},
-				},
-				placeholder: 'Add Field',
-				default: {},
-				options: [
-					allowFileUploadsOption,
-					allowedFileMimeTypeOption,
-					{
-						displayName: 'Response Mode',
-						name: 'responseMode',
-						type: 'options',
-						options: [lastNodeResponseMode, respondNodesResponseMode],
-						default: 'lastNode',
-						description: 'When and how to respond to the chat',
-					},
-				],
-			},
-			{
-				displayName: 'Options',
-				name: 'options',
-				type: 'collection',
-				displayOptions: {
-					show: {
-						mode: ['hostedChat', 'webhook'],
-						public: [true],
-						'@version': [{ _cnd: { gte: 1.3 } }],
-					},
-				},
-				placeholder: 'Add Field',
-				default: {},
-				options: [
-					...commonOptionsFields,
-					{
-						displayName: 'Response Mode',
-						name: 'responseMode',
-						type: 'options',
-						options: [lastNodeResponseMode, respondToWebhookResponseMode],
-						default: 'lastNode',
-						description: 'When and how to respond to the chat',
-						displayOptions: { show: { '/mode': ['webhook'] } },
+						displayName: 'Require Button Click to Start Chat',
+						name: 'showWelcomeScreen',
+						type: 'boolean',
+						displayOptions: {
+							show: {
+								'/mode': ['hostedChat'],
+							},
+						},
+						default: false,
+						description: 'Whether to show the welcome screen at the start of the chat',
 					},
 					{
-						displayName: 'Response Mode',
-						name: 'responseMode',
-						type: 'options',
-						options: [lastNodeResponseMode, respondNodesResponseMode],
-						default: 'lastNode',
-						description: 'When and how to respond to the webhook',
-						displayOptions: { show: { '/mode': ['hostedChat'] } },
+						displayName: 'Start Conversation Button Text',
+						name: 'getStarted',
+						type: 'string',
+						displayOptions: {
+							show: {
+								showWelcomeScreen: [true],
+								'/mode': ['hostedChat'],
+							},
+						},
+						default: 'New Conversation',
+						placeholder: 'e.g. New Conversation',
+						description: 'Shown as part of the welcome screen, in the middle of the chat window',
+					},
+					{
+						displayName: 'Subtitle',
+						name: 'subtitle',
+						type: 'string',
+						displayOptions: {
+							show: {
+								'/mode': ['hostedChat'],
+							},
+						},
+						default: "Start a chat. We're here to help you 24/7.",
+						placeholder: "e.g. We're here for you",
+						description: 'Shown at the top of the chat, under the title',
+					},
+					{
+						displayName: 'Title',
+						name: 'title',
+						type: 'string',
+						displayOptions: {
+							show: {
+								'/mode': ['hostedChat'],
+							},
+						},
+						default: 'Hi there! 👋',
+						placeholder: 'e.g. Welcome',
+						description: 'Shown at the top of the chat',
+					},
+					{
+						displayName: 'Custom Chat Styling',
+						name: 'customCss',
+						type: 'string',
+						typeOptions: {
+							rows: 10,
+							editor: 'cssEditor',
+						},
+						displayOptions: {
+							show: {
+								'/mode': ['hostedChat'],
+							},
+						},
+						default: `
+${cssVariables}
+
+/* You can override any class styles, too. Right-click inspect in Chat UI to find class to override. */
+.chat-message {
+	max-width: 50%;
+}
+`.trim(),
+						description: 'Override default styling of the public chat interface with CSS',
 					},
 				],
 			},
@@ -598,10 +491,7 @@ export class ChatTrigger extends Node {
 			allowFileUploads?: boolean;
 			allowedFilesMimeTypes?: string;
 			customCss?: string;
-			responseMode?: string;
 		};
-
-		const enableStreaming = options.responseMode === 'streaming';
 
 		const req = ctx.getRequestObject();
 		const webhookName = ctx.getWebhookName();
@@ -653,7 +543,6 @@ export class ChatTrigger extends Node {
 					allowFileUploads: options.allowFileUploads,
 					allowedFilesMimeTypes: options.allowedFilesMimeTypes,
 					customCss: options.customCss,
-					enableStreaming,
 				});
 
 				res.status(200).send(page).end();
@@ -674,7 +563,7 @@ export class ChatTrigger extends Node {
 				return {
 					webhookResponse: { data: messages },
 				};
-			} else if (!options?.loadPreviousSession || options?.loadPreviousSession === 'notSupported') {
+			} else if (options?.loadPreviousSession === 'notSupported') {
 				// If messages of a previous session should not be loaded, simply return an empty array
 				return {
 					webhookResponse: { data: [] },
@@ -684,32 +573,6 @@ export class ChatTrigger extends Node {
 
 		let returnData: INodeExecutionData[];
 		const webhookResponse: IDataObject = { status: 200 };
-
-		// Handle streaming responses
-		if (enableStreaming) {
-			// Set up streaming response headers
-			res.writeHead(200, {
-				'Content-Type': 'application/json; charset=utf-8',
-				'Transfer-Encoding': 'chunked',
-				'Cache-Control': 'no-cache',
-				Connection: 'keep-alive',
-			});
-
-			// Flush headers immediately
-			res.flushHeaders();
-
-			if (req.contentType === 'multipart/form-data') {
-				returnData = [await this.handleFormData(ctx)];
-			} else {
-				returnData = [{ json: bodyData }];
-			}
-
-			return {
-				workflowData: [ctx.helpers.returnJsonArray(returnData)],
-				noWebhookResponse: true,
-			};
-		}
-
 		if (req.contentType === 'multipart/form-data') {
 			returnData = [await this.handleFormData(ctx)];
 			return {

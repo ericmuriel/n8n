@@ -4,7 +4,7 @@ import type {
 	IDataObject,
 	JsonObject,
 	IHttpRequestMethods,
-	IHttpRequestOptions,
+	IRequestOptions,
 } from 'n8n-workflow';
 import { NodeApiError } from 'n8n-workflow';
 
@@ -12,19 +12,20 @@ export async function googleApiRequest(
 	this: IExecuteFunctions | ILoadOptionsFunctions,
 	method: IHttpRequestMethods,
 	resource: string,
+
 	body: any = {},
 	qs: IDataObject = {},
 	uri?: string,
 	headers: IDataObject = {},
 ): Promise<any> {
-	const options: IHttpRequestOptions = {
+	const options: IRequestOptions = {
 		headers: {
 			'Content-Type': 'application/json',
 		},
 		method,
 		body,
 		qs,
-		url: uri || `https://www.googleapis.com/admin${resource}`,
+		uri: uri || `https://www.googleapis.com/admin${resource}`,
 		json: true,
 	};
 	try {
@@ -34,11 +35,7 @@ export async function googleApiRequest(
 		if (Object.keys(body as IDataObject).length === 0) {
 			delete options.body;
 		}
-		return await this.helpers.httpRequestWithAuthentication.call(
-			this,
-			'gSuiteAdminOAuth2Api',
-			options,
-		);
+		return await this.helpers.requestOAuth2.call(this, 'gSuiteAdminOAuth2Api', options);
 	} catch (error) {
 		throw new NodeApiError(this.getNode(), error as JsonObject);
 	}
@@ -49,6 +46,7 @@ export async function googleApiRequestAllItems(
 	propertyName: string,
 	method: IHttpRequestMethods,
 	endpoint: string,
+
 	body: any = {},
 	query: IDataObject = {},
 ): Promise<any> {

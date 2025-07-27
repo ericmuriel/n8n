@@ -4,21 +4,12 @@ import CanvasNodeToolbar from '@/components/canvas/elements/nodes/CanvasNodeTool
 import { createComponentRenderer } from '@/__tests__/render';
 import { createCanvasNodeProvide, createCanvasProvide } from '@/__tests__/data';
 import { CanvasNodeRenderType } from '@/types';
-import { createPinia, setActivePinia, type Pinia } from 'pinia';
 
 const renderComponent = createComponentRenderer(CanvasNodeToolbar);
 
 describe('CanvasNodeToolbar', () => {
-	let pinia: Pinia;
-
-	beforeEach(() => {
-		pinia = createPinia();
-		setActivePinia(pinia);
-	});
-
 	it('should render execute node button when renderType is not configuration', async () => {
 		const { getByTestId } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide(),
@@ -32,7 +23,6 @@ describe('CanvasNodeToolbar', () => {
 
 	it('should render disabled execute node button when canvas is executing', () => {
 		const { getByTestId } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide(),
@@ -48,7 +38,6 @@ describe('CanvasNodeToolbar', () => {
 
 	it('should render disabled execute node button when node is deactivated', async () => {
 		const { getByTestId, getByRole } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide({
@@ -107,7 +96,6 @@ describe('CanvasNodeToolbar', () => {
 
 	it('should emit "toggle" when disable node button is clicked', async () => {
 		const { getByTestId, emitted } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide(),
@@ -123,7 +111,6 @@ describe('CanvasNodeToolbar', () => {
 
 	it('should emit "delete" when delete node button is clicked', async () => {
 		const { getByTestId, emitted } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide(),
@@ -139,7 +126,6 @@ describe('CanvasNodeToolbar', () => {
 
 	it('should emit "open:contextmenu" when overflow node button is clicked', async () => {
 		const { getByTestId, emitted } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide(),
@@ -155,7 +141,6 @@ describe('CanvasNodeToolbar', () => {
 
 	it('should emit "update" when sticky note color is changed', async () => {
 		const { getAllByTestId, getByTestId, emitted } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide({
@@ -179,7 +164,6 @@ describe('CanvasNodeToolbar', () => {
 
 	it('should have "forceVisible" class when hovered', async () => {
 		const { getByTestId } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide(),
@@ -197,7 +181,6 @@ describe('CanvasNodeToolbar', () => {
 
 	it('should have "forceVisible" class when sticky color picker is visible', async () => {
 		const { getByTestId } = renderComponent({
-			pinia,
 			global: {
 				provide: {
 					...createCanvasNodeProvide({

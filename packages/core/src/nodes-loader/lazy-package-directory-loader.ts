@@ -12,7 +12,7 @@ export class LazyPackageDirectoryLoader extends PackageDirectoryLoader {
 			this.types.nodes = await this.readJSON('dist/types/nodes.json');
 			this.types.credentials = await this.readJSON('dist/types/credentials.json');
 
-			if (this.removeNonIncludedNodes) {
+			if (this.includeNodes.length) {
 				const allowedNodes: typeof this.known.nodes = {};
 				for (const nodeType of this.includeNodes) {
 					if (nodeType in this.known.nodes) {

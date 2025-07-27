@@ -15,11 +15,8 @@ export async function searchModels(
 	this: ILoadOptionsFunctions,
 	filter?: string,
 ): Promise<INodeListSearchResult> {
-	const credentials = await this.getCredentials<{ url?: string }>('anthropicApi');
-
-	const baseURL = credentials.url ?? 'https://api.anthropic.com';
 	const response = (await this.helpers.httpRequestWithAuthentication.call(this, 'anthropicApi', {
-		url: `${baseURL}/v1/models`,
+		url: 'https://api.anthropic.com/v1/models',
 		headers: {
 			'anthropic-version': '2023-06-01',
 		},

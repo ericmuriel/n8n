@@ -1,5 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
+
+import { testWorkflows } from '@test/nodes/Helpers';
 
 describe('Test MicrosoftOutlookV2, calendar => getAll', () => {
 	nock('https://graph.microsoft.com/v1.0/me')
@@ -47,7 +48,6 @@ describe('Test MicrosoftOutlookV2, calendar => getAll', () => {
 			],
 		});
 
-	new NodeTestHarness().setupTests({
-		workflowFiles: ['getAll.workflow.json'],
-	});
+	const workflows = ['nodes/Microsoft/Outlook/test/v2/node/calendar/getAll.workflow.json'];
+	testWorkflows(workflows);
 });

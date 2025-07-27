@@ -1,20 +1,14 @@
-import type { LogLevel, WorkflowSettings } from 'n8n-workflow';
-
-import { type InsightsDateRange } from './schemas/insights.schema';
+import type { ExpressionEvaluatorType, LogLevel, WorkflowSettings } from 'n8n-workflow';
 
 export interface IVersionNotificationSettings {
 	enabled: boolean;
 	endpoint: string;
-	whatsNewEnabled: boolean;
-	whatsNewEndpoint: string;
 	infoUrl: string;
 }
 
 export interface ITelemetryClientConfig {
 	url: string;
 	key: string;
-	proxy: string;
-	sourceConfig: string;
 }
 
 export interface ITelemetrySettings {
@@ -22,7 +16,7 @@ export interface ITelemetrySettings {
 	config?: ITelemetryClientConfig;
 }
 
-export type AuthenticationMethod = 'email' | 'ldap' | 'saml' | 'oidc';
+export type AuthenticationMethod = 'email' | 'ldap' | 'saml';
 
 export interface IUserManagementSettings {
 	quota: number;
@@ -38,8 +32,6 @@ export interface FrontendSettings {
 	endpointForm: string;
 	endpointFormTest: string;
 	endpointFormWaiting: string;
-	endpointMcp: string;
-	endpointMcpTest: string;
 	endpointWebhook: string;
 	endpointWebhookTest: string;
 	endpointWebhookWaiting: string;
@@ -88,11 +80,6 @@ export interface FrontendSettings {
 			loginLabel: string;
 			loginEnabled: boolean;
 		};
-		oidc: {
-			loginEnabled: boolean;
-			loginUrl: string;
-			callbackUrl: string;
-		};
 		ldap: {
 			loginLabel: string;
 			loginEnabled: boolean;
@@ -116,11 +103,8 @@ export interface FrontendSettings {
 	};
 	missingPackages?: boolean;
 	executionMode: 'regular' | 'queue';
-	/** Whether multi-main mode is enabled and licensed for this main instance. */
-	isMultiMain: boolean;
 	pushBackend: 'sse' | 'websocket';
 	communityNodesEnabled: boolean;
-	unverifiedCommunityNodesEnabled: boolean;
 	aiAssistant: {
 		enabled: boolean;
 	};
@@ -138,8 +122,6 @@ export interface FrontendSettings {
 		sharing: boolean;
 		ldap: boolean;
 		saml: boolean;
-		oidc: boolean;
-		mfaEnforcement: boolean;
 		logStreaming: boolean;
 		advancedExecutionFilters: boolean;
 		variables: boolean;
@@ -152,7 +134,6 @@ export interface FrontendSettings {
 		workflowHistory: boolean;
 		workerView: boolean;
 		advancedPermissions: boolean;
-		apiKeyScopes: boolean;
 		projects: {
 			team: {
 				limit: number;
@@ -168,9 +149,11 @@ export interface FrontendSettings {
 	variables: {
 		limit: number;
 	};
+	expressions: {
+		evaluator: ExpressionEvaluatorType;
+	};
 	mfa: {
 		enabled: boolean;
-		enforced: boolean;
 	};
 	folders: {
 		enabled: boolean;
@@ -198,29 +181,7 @@ export interface FrontendSettings {
 	partialExecution: {
 		version: 1 | 2;
 	};
-	evaluation: {
-		quota: number;
+	insights: {
+		enabled: boolean;
 	};
-
-	/** Backend modules that were initialized during startup. */
-	activeModules: string[];
-	envFeatureFlags: N8nEnvFeatFlags;
 }
-
-export type FrontendModuleSettings = {
-	/**
-	 * Client settings for [insights](https://docs.n8n.io/insights/) module.
-	 *
-	 * - `summary`: Whether the summary banner should be shown.
-	 * - `dashboard`: Whether the full dashboard should be shown.
-	 * - `dateRanges`: Date range filters available to select.
-	 */
-	insights?: {
-		summary: boolean;
-		dashboard: boolean;
-		dateRanges: InsightsDateRange[];
-	};
-};
-
-export type N8nEnvFeatFlagValue = boolean | string | number | undefined;
-export type N8nEnvFeatFlags = Record<`N8N_ENV_FEAT_${Uppercase<string>}`, N8nEnvFeatFlagValue>;

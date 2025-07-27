@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateCodeForAiTransform, reducePayloadSizeOrThrow } from './utils';
 import { createPinia, setActivePinia } from 'pinia';
@@ -16,7 +17,7 @@ vi.mock('./utils', async () => {
 	};
 });
 
-vi.mock('@n8n/stores/useRootStore', () => ({
+vi.mock('@/stores/root.store', () => ({
 	useRootStore: () => ({
 		pushRef: 'mockRootPushRef',
 		restApiContext: {},

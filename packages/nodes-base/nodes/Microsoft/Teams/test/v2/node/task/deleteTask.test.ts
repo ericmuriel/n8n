@@ -1,7 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
 
-import { credentials } from '../../../credentials';
+import { testWorkflows } from '@test/nodes/Helpers';
 
 describe('Test MicrosoftTeamsV2, task => deleteTask', () => {
 	nock('https://graph.microsoft.com')
@@ -11,8 +10,6 @@ describe('Test MicrosoftTeamsV2, task => deleteTask', () => {
 		.matchHeader('If-Match', 'W/"JzEtVGFzayAgQEBAQEBAQEBAQEBAQEBARCc="')
 		.reply(200, {});
 
-	new NodeTestHarness().setupTests({
-		credentials,
-		workflowFiles: ['deleteTask.workflow.json'],
-	});
+	const workflows = ['nodes/Microsoft/Teams/test/v2/node/task/deleteTask.workflow.json'];
+	testWorkflows(workflows);
 });

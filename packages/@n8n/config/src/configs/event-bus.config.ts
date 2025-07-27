@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 import { Config, Env, Nested } from '../decorators';
 
 @Config
@@ -17,9 +15,6 @@ class LogWriterConfig {
 	logBaseName: string = 'n8nEventLog';
 }
 
-const recoveryModeSchema = z.enum(['simple', 'extensive']);
-type RecoveryMode = z.infer<typeof recoveryModeSchema>;
-
 @Config
 export class EventBusConfig {
 	/** How often (in ms) to check for unsent event messages. Can in rare cases cause a message to be sent twice. `0` to disable */
@@ -31,6 +26,6 @@ export class EventBusConfig {
 	logWriter: LogWriterConfig;
 
 	/** Whether to recover execution details after a crash or only mark status executions as crashed. */
-	@Env('N8N_EVENTBUS_RECOVERY_MODE', recoveryModeSchema)
-	crashRecoveryMode: RecoveryMode = 'extensive';
+	@Env('N8N_EVENTBUS_RECOVERY_MODE')
+	crashRecoveryMode: 'simple' | 'extensive' = 'extensive';
 }

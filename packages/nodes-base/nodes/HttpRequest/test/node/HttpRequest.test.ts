@@ -1,11 +1,14 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
 import { parse as parseUrl } from 'url';
+
+import { initBinaryDataService, getWorkflowFilenames, testWorkflows } from '@test/nodes/Helpers';
 
 describe('Test HTTP Request Node', () => {
 	const baseUrl = 'https://dummyjson.com';
 
 	beforeAll(async () => {
+		await initBinaryDataService();
+
 		function getPaginationReturnData(this: nock.ReplyFnContext, limit = 10, skip = 0) {
 			const nextUrl = `${baseUrl}/users?skip=${skip + limit}&limit=${limit}`;
 
@@ -180,5 +183,6 @@ describe('Test HTTP Request Node', () => {
 			});
 	});
 
-	new NodeTestHarness().setupTests();
+	const workflows = getWorkflowFilenames(__dirname);
+	testWorkflows(workflows);
 });

@@ -6,25 +6,18 @@ import { Embeddings } from '@langchain/core/embeddings';
 import type { InputValues, MemoryVariables, OutputValues } from '@langchain/core/memory';
 import type { BaseMessage } from '@langchain/core/messages';
 import { BaseRetriever } from '@langchain/core/retrievers';
-import { BaseDocumentCompressor } from '@langchain/core/retrievers/document_compressors';
-import type { StructuredTool, Tool } from '@langchain/core/tools';
+import type { Tool } from '@langchain/core/tools';
 import { VectorStore } from '@langchain/core/vectorstores';
 import { TextSplitter } from '@langchain/textsplitters';
 import type { BaseDocumentLoader } from 'langchain/dist/document_loaders/base';
 import type {
-	IDataObject,
 	IExecuteFunctions,
 	INodeExecutionData,
 	ISupplyDataFunctions,
 	ITaskMetadata,
 	NodeConnectionType,
 } from 'n8n-workflow';
-import {
-	NodeOperationError,
-	NodeConnectionTypes,
-	parseErrorMetadata,
-	deepCopy,
-} from 'n8n-workflow';
+import { NodeOperationError, NodeConnectionTypes, parseErrorMetadata } from 'n8n-workflow';
 
 import { logAiEvent, isToolsInstance, isBaseChatMemory, isBaseChatMessageHistory } from './helpers';
 import { N8nBinaryLoader } from './N8nBinaryLoader';
@@ -101,14 +94,12 @@ export function callMethodSync<T>(
 	}
 }
 
-export function logWrapper<
-	T extends
+export function logWrapper(
+	originalInstance:
 		| Tool
-		| StructuredTool
 		| BaseChatMemory
 		| BaseChatMessageHistory
 		| BaseRetriever
-		| BaseDocumentCompressor
 		| Embeddings
 		| Document[]
 		| Document
@@ -117,7 +108,8 @@ export function logWrapper<
 		| VectorStore
 		| N8nBinaryLoader
 		| N8nJsonLoader,
->(originalInstance: T, executeFunctions: IExecuteFunctions | ISupplyDataFunctions): T {
+	executeFunctions: IExecuteFunctions | ISupplyDataFunctions,
+) {
 	return new Proxy(originalInstance, {
 		get: (target, prop) => {
 			let connectionType: NodeConnectionType | undefined;
@@ -304,32 +296,6 @@ export function logWrapper<
 				}
 			}
 
-			// ========== Rerankers ==========
-			if (originalInstance instanceof BaseDocumentCompressor) {
-				if (prop === 'compressDocuments' && 'compressDocuments' in target) {
-					return async (documents: Document[], query: string): Promise<Document[]> => {
-						connectionType = NodeConnectionTypes.AiReranker;
-						const { index } = executeFunctions.addInputData(connectionType, [
-							[{ json: { query, documents } }],
-						]);
-
-						const response = (await callMethodAsync.call(target, {
-							executeFunctions,
-							connectionType,
-							currentNodeRunIndex: index,
-							method: target[prop],
-							// compressDocuments mutates the original object
-							// messing up the input data logging
-							arguments: [deepCopy(documents), query],
-						})) as Document[];
-
-						logAiEvent(executeFunctions, 'ai-document-reranked', { query });
-						executeFunctions.addOutputData(connectionType, index, [[{ json: { response } }]]);
-						return response;
-					};
-				}
-			}
-
 			// ========== N8n Loaders Process All ==========
 			if (
 				originalInstance instanceof N8nJsonLoader ||
@@ -406,16 +372,8 @@ export function logWrapper<
 				if (prop === '_call' && '_call' in target) {
 					return async (query: string): Promise<string> => {
 						connectionType = NodeConnectionTypes.AiTool;
-						const inputData: IDataObject = { query };
-
-						if (target.metadata?.isFromToolkit) {
-							inputData.tool = {
-								name: target.name,
-								description: target.description,
-							};
-						}
 						const { index } = executeFunctions.addInputData(connectionType, [
-							[{ json: inputData }],
+							[{ json: { query } }],
 						]);
 
 						const response = (await callMethodAsync.call(target, {
@@ -426,11 +384,9 @@ export function logWrapper<
 							arguments: [query],
 						})) as string;
 
-						logAiEvent(executeFunctions, 'ai-tool-called', { ...inputData, response });
+						logAiEvent(executeFunctions, 'ai-tool-called', { query, response });
 						executeFunctions.addOutputData(connectionType, index, [[{ json: { response } }]]);
-
-						if (typeof response === 'string') return response;
-						return JSON.stringify(response);
+						return response;
 					};
 				}
 			}
@@ -441,8 +397,8 @@ export function logWrapper<
 					return async (
 						query: string,
 						k?: number,
-						filter?: BiquadFilterType,
-						_callbacks?: Callbacks,
+						filter?: BiquadFilterType | undefined,
+						_callbacks?: Callbacks | undefined,
 					): Promise<Document[]> => {
 						connectionType = NodeConnectionTypes.AiVectorStore;
 						const { index } = executeFunctions.addInputData(connectionType, [

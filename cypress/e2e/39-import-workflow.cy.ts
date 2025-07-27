@@ -1,7 +1,9 @@
 import { WorkflowPage } from '../pages';
+import { MessageBox as MessageBoxClass } from '../pages/modals/message-box';
 import { errorToast, successToast } from '../pages/notifications';
 
 const workflowPage = new WorkflowPage();
+const messageBox = new MessageBoxClass();
 
 before(() => {
 	cy.fixture('Onboarding_workflow.json').then((data) => {
@@ -18,13 +20,11 @@ describe('Import workflow', () => {
 			workflowPage.getters.workflowMenu().click();
 			workflowPage.getters.workflowMenuItemImportFromURLItem().click();
 
-			workflowPage.getters.inputURLImportWorkflowFromURL().should('be.visible');
+			messageBox.getters.modal().should('be.visible');
 
-			workflowPage.getters
-				.inputURLImportWorkflowFromURL()
-				.type('https://fakepage.com/workflow.json');
+			messageBox.getters.content().type('https://fakepage.com/workflow.json');
 
-			workflowPage.getters.confirmActionImportWorkflowFromURL().click();
+			messageBox.getters.confirm().click();
 
 			workflowPage.actions.zoomToFit();
 
@@ -37,6 +37,7 @@ describe('Import workflow', () => {
 
 		it('clicking outside modal should not show error toast', () => {
 			workflowPage.actions.visit(true);
+
 			workflowPage.getters.workflowMenu().click();
 			workflowPage.getters.workflowMenuItemImportFromURLItem().click();
 
@@ -50,7 +51,7 @@ describe('Import workflow', () => {
 
 			workflowPage.getters.workflowMenu().click();
 			workflowPage.getters.workflowMenuItemImportFromURLItem().click();
-			workflowPage.getters.cancelActionImportWorkflowFromURL().click();
+			messageBox.getters.cancel().click();
 
 			errorToast().should('not.exist');
 		});

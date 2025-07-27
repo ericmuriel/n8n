@@ -566,7 +566,7 @@ export class Jira implements INodeType {
 						this,
 						'/api/2/issuetype',
 						'GET',
-						{},
+						body,
 						qs,
 					);
 					const subtaskIssues = [];
@@ -690,6 +690,7 @@ export class Jira implements INodeType {
 						this,
 						'/api/2/issuetype',
 						'GET',
+						body,
 					);
 					const subtaskIssues = [];
 					for (const issueType of issueTypes) {
@@ -804,16 +805,12 @@ export class Jira implements INodeType {
 					const returnAll = this.getNodeParameter('returnAll', i);
 					const options = this.getNodeParameter('options', i);
 					const body: IDataObject = {};
-					if (!options.fields) {
-						// By default, the new endpoint returns only the ids, before it used to return `*navigable` fields
-						options.fields = '*navigable';
+					if (options.fields) {
+						body.fields = (options.fields as string).split(',');
 					}
-					body.fields = (options.fields as string).split(',');
-					if (!options.jql) {
-						// Jira API returns an error if the JQL query is unbounded (i.e. does not include any filters)
-						options.jql = 'created >= "1970-01-01"';
+					if (options.jql) {
+						body.jql = options.jql as string;
 					}
-					body.jql = options.jql as string;
 					if (options.expand) {
 						if (typeof options.expand === 'string') {
 							body.expand = options.expand.split(',');
@@ -822,43 +819,22 @@ export class Jira implements INodeType {
 						}
 					}
 					if (returnAll) {
-						if (jiraVersion === 'server' || jiraVersion === 'serverPat') {
-							responseData = await jiraSoftwareCloudApiRequestAllItems.call(
-								this,
-								'issues',
-								'/api/2/search',
-								'POST',
-								body,
-							);
-						} else {
-							responseData = await jiraSoftwareCloudApiRequestAllItems.call(
-								this,
-								'issues',
-								'/api/2/search/jql',
-								'POST',
-								body,
-								{},
-								'token',
-							);
-						}
+						responseData = await jiraSoftwareCloudApiRequestAllItems.call(
+							this,
+							'issues',
+							'/api/2/search',
+							'POST',
+							body,
+						);
 					} else {
 						const limit = this.getNodeParameter('limit', i);
 						body.maxResults = limit;
-						if (jiraVersion === 'server' || jiraVersion === 'serverPat') {
-							responseData = await jiraSoftwareCloudApiRequest.call(
-								this,
-								'/api/2/search',
-								'POST',
-								body,
-							);
-						} else {
-							responseData = await jiraSoftwareCloudApiRequest.call(
-								this,
-								'/api/2/search/jql',
-								'POST',
-								body,
-							);
-						}
+						responseData = await jiraSoftwareCloudApiRequest.call(
+							this,
+							'/api/2/search',
+							'POST',
+							body,
+						);
 						responseData = responseData.issues;
 					}
 
@@ -1322,6 +1298,7 @@ export class Jira implements INodeType {
 					const issueKey = this.getNodeParameter('issueKey', i) as string;
 					const returnAll = this.getNodeParameter('returnAll', i);
 					const options = this.getNodeParameter('options', i);
+					const body: IDataObject = {};
 					Object.assign(qs, options);
 					if (returnAll) {
 						responseData = await jiraSoftwareCloudApiRequestAllItems.call(
@@ -1329,7 +1306,7 @@ export class Jira implements INodeType {
 							'comments',
 							`/api/${apiVersion}/issue/${issueKey}/comment`,
 							'GET',
-							{},
+							body,
 							qs,
 						);
 					} else {
@@ -1339,7 +1316,7 @@ export class Jira implements INodeType {
 							this,
 							`/api/${apiVersion}/issue/${issueKey}/comment`,
 							'GET',
-							{},
+							body,
 							qs,
 						);
 						responseData = responseData.comments;

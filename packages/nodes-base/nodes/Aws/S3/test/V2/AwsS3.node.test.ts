@@ -1,7 +1,8 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
 
-import { credentials } from '../../../__tests__/credentials';
+import { getWorkflowFilenames, initBinaryDataService, testWorkflows } from '@test/nodes/Helpers';
+
+const workflows = getWorkflowFilenames(__dirname);
 
 describe('Test S3 V2 Node', () => {
 	describe('File Upload', () => {
@@ -10,6 +11,8 @@ describe('Test S3 V2 Node', () => {
 
 		beforeAll(async () => {
 			jest.useFakeTimers({ doNotFake: ['nextTick'], now });
+
+			await initBinaryDataService();
 
 			mock = nock('https://s3.eu-central-1.amazonaws.com/buc.ket');
 		});
@@ -36,6 +39,6 @@ describe('Test S3 V2 Node', () => {
 				.reply(200, { success: true });
 		});
 
-		new NodeTestHarness().setupTests({ credentials });
+		testWorkflows(workflows);
 	});
 });

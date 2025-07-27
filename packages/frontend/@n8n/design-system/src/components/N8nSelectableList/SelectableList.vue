@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 
 import { useI18n } from '../../composables/useI18n';
-import N8nIcon from '../N8nIcon';
 
 const { t } = useI18n();
 
@@ -11,10 +10,6 @@ defineSlots<{
 	addItem: (props: Item) => unknown;
 	// This slot is used to display a selected item
 	displayItem: (props: Item) => unknown;
-}>();
-
-const emit = defineEmits<{
-	removeItem: [name: string];
 }>();
 
 type SelectableListProps = {
@@ -55,7 +50,6 @@ function addToSelectedItems(name: string) {
 
 function removeFromSelectedItems(name: string) {
 	delete selectedItems.value[name];
-	emit('removeItem', name);
 }
 
 function itemComparator(a: Item, b: Item) {
@@ -87,10 +81,9 @@ function itemComparator(a: Item, b: Item) {
 			:data-test-id="`selectable-list-slot-${item.name}`"
 		>
 			<N8nIcon
-				v-if="!disabled"
 				:class="$style.slotRemoveIcon"
 				size="xsmall"
-				icon="trash-2"
+				:icon="disabled ? 'none' : 'trash'"
 				:data-test-id="`selectable-list-remove-slot-${item.name}`"
 				@click="!disabled && removeFromSelectedItems(item.name)"
 			/>

@@ -1,10 +1,11 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import { NodeConnectionTypes, type WorkflowTestData } from 'n8n-workflow';
+
+import { executeWorkflow } from '@test/nodes/ExecuteWorkflow';
+import * as Helpers from '@test/nodes/Helpers';
 
 import { microsoftEntraApiResponse, microsoftEntraNodeResponse } from './mocks';
 
 describe('Microsoft Entra Node', () => {
-	const testHarness = new NodeTestHarness();
 	const baseUrl = 'https://graph.microsoft.com/v1.0';
 
 	describe('User description', () => {
@@ -17,7 +18,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -42,7 +43,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -52,11 +53,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -67,8 +68,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [microsoftEntraNodeResponse.addUserToGroup],
+						'Micosoft Entra ID': [microsoftEntraNodeResponse.addUserToGroup],
 					},
 				},
 				nock: {
@@ -95,7 +97,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -156,7 +158,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -166,11 +168,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -181,8 +183,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [microsoftEntraNodeResponse.createUser],
+						'Micosoft Entra ID': [microsoftEntraNodeResponse.createUser],
 					},
 				},
 				nock: {
@@ -271,7 +274,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -292,7 +295,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -302,11 +305,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -317,8 +320,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [microsoftEntraNodeResponse.deleteUser],
+						'Micosoft Entra ID': [microsoftEntraNodeResponse.deleteUser],
 					},
 				},
 				nock: {
@@ -341,7 +345,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -362,7 +366,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -372,11 +376,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -387,8 +391,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [microsoftEntraNodeResponse.getUser],
+						'Micosoft Entra ID': [microsoftEntraNodeResponse.getUser],
 					},
 				},
 				nock: {
@@ -411,7 +416,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -509,7 +514,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -519,11 +524,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -534,8 +539,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [
+						'Micosoft Entra ID': [
 							[
 								{
 									json: {
@@ -571,7 +577,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -589,7 +595,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -599,11 +605,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -614,8 +620,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [new Array(102).fill(microsoftEntraNodeResponse.getUser[0])],
+						'Micosoft Entra ID': [new Array(102).fill(microsoftEntraNodeResponse.getUser[0])],
 					},
 				},
 				nock: {
@@ -652,7 +659,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -670,7 +677,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -680,11 +687,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -695,8 +702,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [new Array(10).fill(microsoftEntraNodeResponse.getUser[0])],
+						'Micosoft Entra ID': [new Array(10).fill(microsoftEntraNodeResponse.getUser[0])],
 					},
 				},
 				nock: {
@@ -724,7 +732,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -809,7 +817,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -819,11 +827,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -834,8 +842,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [
+						'Micosoft Entra ID': [
 							new Array(102).fill({
 								json: {
 									'@odata.context': 'https://graph.microsoft.com/v1.0/$metadata#users(id)/$entity',
@@ -885,7 +894,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -910,7 +919,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -920,11 +929,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -935,8 +944,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [microsoftEntraNodeResponse.removeUserFromGroup],
+						'Micosoft Entra ID': [microsoftEntraNodeResponse.removeUserFromGroup],
 					},
 				},
 				nock: {
@@ -959,7 +969,7 @@ describe('Microsoft Entra Node', () => {
 							{
 								parameters: {},
 								id: '416e4fc1-5055-4e61-854e-a6265256ac26',
-								name: 'When clicking ‘Execute workflow’',
+								name: "When clicking 'Test workflow'",
 								type: 'n8n-nodes-base.manualTrigger',
 								position: [820, 380],
 								typeVersion: 1,
@@ -1027,7 +1037,7 @@ describe('Microsoft Entra Node', () => {
 								typeVersion: 1,
 								position: [220, 0],
 								id: '3429f7f2-dfca-4b72-8913-43a582e96e66',
-								name: 'Microsoft Entra ID',
+								name: 'Micosoft Entra ID',
 								credentials: {
 									microsoftEntraOAuth2Api: {
 										id: 'Hot2KwSMSoSmMVqd',
@@ -1037,11 +1047,11 @@ describe('Microsoft Entra Node', () => {
 							},
 						],
 						connections: {
-							'When clicking ‘Execute workflow’': {
+							"When clicking 'Test workflow'": {
 								main: [
 									[
 										{
-											node: 'Microsoft Entra ID',
+											node: 'Micosoft Entra ID',
 											type: NodeConnectionTypes.Main,
 											index: 0,
 										},
@@ -1052,8 +1062,9 @@ describe('Microsoft Entra Node', () => {
 					},
 				},
 				output: {
+					nodeExecutionOrder: ['Start'],
 					nodeData: {
-						'Microsoft Entra ID': [microsoftEntraNodeResponse.updateUser],
+						'Micosoft Entra ID': [microsoftEntraNodeResponse.updateUser],
 					},
 				},
 				nock: {
@@ -1076,6 +1087,8 @@ describe('Microsoft Entra Node', () => {
 								employeeId: 'employee-id-123',
 								employeeType: 'Contractor',
 								givenName: 'John',
+								employeeHireDate: null,
+								employeeLeaveDateTime: null,
 								employeeOrgData: {
 									costCenter: 'Cost Center 1',
 									division: 'Division 1',
@@ -1124,8 +1137,14 @@ describe('Microsoft Entra Node', () => {
 			},
 		];
 
-		for (const testData of tests) {
-			testHarness.setupTest(testData);
-		}
+		test.each(tests)('$description', async (testData) => {
+			const { result } = await executeWorkflow(testData);
+
+			const resultNodeData = Helpers.getResultNodeData(result, testData);
+			resultNodeData.forEach(({ nodeName, resultData }) =>
+				expect(resultData).toEqual(testData.output.nodeData[nodeName]),
+			);
+			expect(result.status).toEqual('success');
+		});
 	});
 });

@@ -1,5 +1,3 @@
-import { Logger } from '@n8n/backend-common';
-import { TOOL_EXECUTOR_NODE_NAME } from '@n8n/constants';
 import { Service } from '@n8n/di';
 import * as a from 'assert/strict';
 import {
@@ -7,16 +5,12 @@ import {
 	filterDisabledNodes,
 	recreateNodeExecutionStack,
 	WorkflowExecute,
-	rewireGraph,
+	Logger,
 } from 'n8n-core';
-import { NodeHelpers } from 'n8n-workflow';
 import type {
-	IExecuteData,
 	IPinData,
 	IRun,
 	IRunExecutionData,
-	IWaitingForExecution,
-	IWaitingForExecutionSource,
 	IWorkflowExecuteAdditionalData,
 	IWorkflowExecutionDataProcess,
 	Workflow,
@@ -54,7 +48,7 @@ export class ManualExecutionService {
 		executionId: string,
 		pinData?: IPinData,
 	): PCancelable<IRun> {
-		if (data.triggerToStartFrom?.data && data.startNodes?.length) {
+		if (data.triggerToStartFrom?.data && data.startNodes) {
 			this.logger.debug(
 				`Execution ID ${executionId} had triggerToStartFrom. Starting from that trigger.`,
 				{ executionId },
@@ -66,22 +60,13 @@ export class ManualExecutionService {
 			});
 			const runData = { [data.triggerToStartFrom.name]: [data.triggerToStartFrom.data] };
 
-			let nodeExecutionStack: IExecuteData[] = [];
-			let waitingExecution: IWaitingForExecution = {};
-			let waitingExecutionSource: IWaitingForExecutionSource = {};
-
-			if (data.destinationNode !== data.triggerToStartFrom.name) {
-				const recreatedStack = recreateNodeExecutionStack(
+			const { nodeExecutionStack, waitingExecution, waitingExecutionSource } =
+				recreateNodeExecutionStack(
 					filterDisabledNodes(DirectedGraph.fromWorkflow(workflow)),
 					new Set(startNodes),
 					runData,
 					data.pinData ?? {},
 				);
-				nodeExecutionStack = recreatedStack.nodeExecutionStack;
-				waitingExecution = recreatedStack.waitingExecution;
-				waitingExecutionSource = recreatedStack.waitingExecutionSource;
-			}
-
 			const executionData: IRunExecutionData = {
 				resultData: { runData, pinData },
 				executionData: {
@@ -105,8 +90,8 @@ export class ManualExecutionService {
 			return workflowExecute.processRunExecutionData(workflow);
 		} else if (
 			data.runData === undefined ||
-			(data.partialExecutionVersion !== 2 && (!data.startNodes || data.startNodes.length === 0)) ||
-			data.executionMode === 'evaluation'
+			data.startNodes === undefined ||
+			data.startNodes.length === 0
 		) {
 			// Full Execution
 			// TODO: When the old partial execution logic is removed this block can
@@ -122,49 +107,10 @@ export class ManualExecutionService {
 
 			const startNode = this.getExecutionStartNode(data, workflow);
 
-			if (data.destinationNode) {
-				const destinationNode = workflow.getNode(data.destinationNode);
-				a.ok(
-					destinationNode,
-					`Could not find a node named "${data.destinationNode}" in the workflow.`,
-				);
-
-				const destinationNodeType = workflow.nodeTypes.getByNameAndVersion(
-					destinationNode.type,
-					destinationNode.typeVersion,
-				);
-				// Rewire graph to be able to execute the destination tool node
-				if (NodeHelpers.isTool(destinationNodeType.description, destinationNode.parameters)) {
-					const graph = rewireGraph(
-						destinationNode,
-						DirectedGraph.fromWorkflow(workflow),
-						data.agentRequest,
-					);
-
-					workflow = graph.toWorkflow({
-						...workflow,
-					});
-
-					// Save original destination
-					if (data.executionData) {
-						data.executionData.startData = data.executionData.startData ?? {};
-						data.executionData.startData.originalDestinationNode = data.destinationNode;
-					}
-					// Set destination to Tool Executor
-					data.destinationNode = TOOL_EXECUTOR_NODE_NAME;
-				}
-			}
-
 			// Can execute without webhook so go on
 			const workflowExecute = new WorkflowExecute(additionalData, data.executionMode);
 
-			return workflowExecute.run(
-				workflow,
-				startNode,
-				data.destinationNode,
-				data.pinData,
-				data.triggerToStartFrom,
-			);
+			return workflowExecute.run(workflow, startNode, data.destinationNode, data.pinData);
 		} else {
 			// Partial Execution
 			this.logger.debug(`Execution ID ${executionId} is a partial execution.`, { executionId });
@@ -178,13 +124,12 @@ export class ManualExecutionService {
 					data.pinData,
 					data.dirtyNodeNames,
 					data.destinationNode,
-					data.agentRequest,
 				);
 			} else {
 				return workflowExecute.runPartialWorkflow(
 					workflow,
 					data.runData,
-					data.startNodes ?? [],
+					data.startNodes,
 					data.destinationNode,
 					data.pinData,
 				);

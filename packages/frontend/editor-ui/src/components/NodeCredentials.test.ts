@@ -55,7 +55,7 @@ const openAiNode: INodeUi = {
 
 describe('NodeCredentials', () => {
 	const defaultRenderOptions: RenderOptions = {
-		pinia: createTestingPinia({ stubActions: false }),
+		pinia: createTestingPinia(),
 		props: {
 			overrideCredType: 'openAiApi',
 			node: httpNode,

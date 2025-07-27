@@ -1,4 +1,3 @@
-import { CredentialsRepository } from '@n8n/db';
 import { Container } from '@n8n/di';
 import type {
 	IDataObject,
@@ -9,6 +8,7 @@ import type {
 } from 'n8n-workflow';
 import { v4 as uuid } from 'uuid';
 
+import { CredentialsRepository } from '@/databases/repositories/credentials.repository';
 import { VariablesService } from '@/environments.ee/variables/variables.service.ee';
 
 /**
@@ -39,7 +39,6 @@ export function getDataLastExecutedNodeData(inputData: IRun): ITaskData | undefi
 
 		return {
 			startTime: 0,
-			executionIndex: 0,
 			executionTime: 0,
 			data: { main: [itemsPerRun] },
 			source: lastNodeRunData.source,

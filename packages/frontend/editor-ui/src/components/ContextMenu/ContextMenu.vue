@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { type ContextMenuAction, useContextMenu } from '@/composables/useContextMenu';
-import { useStyles } from '@/composables/useStyles';
 import { N8nActionDropdown } from '@n8n/design-system';
 import { watch, ref } from 'vue';
 
@@ -8,7 +7,6 @@ const contextMenu = useContextMenu();
 const { position, isOpen, actions, target } = contextMenu;
 const dropdown = ref<InstanceType<typeof N8nActionDropdown>>();
 const emit = defineEmits<{ action: [action: ContextMenuAction, nodeIds: string[]] }>();
-const { APP_Z_INDEXES } = useStyles();
 
 watch(
 	isOpen,
@@ -42,7 +40,6 @@ function onVisibleChange(open: boolean) {
 			:style="{
 				left: `${position[0]}px`,
 				top: `${position[1]}px`,
-				zIndex: APP_Z_INDEXES.CONTEXT_MENU,
 			}"
 		>
 			<N8nActionDropdown

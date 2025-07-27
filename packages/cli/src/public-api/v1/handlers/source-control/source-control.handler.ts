@@ -1,5 +1,4 @@
 import { PullWorkFolderRequestDto } from '@n8n/api-types';
-import type { AuthenticatedRequest } from '@n8n/db';
 import { Container } from '@n8n/di';
 import type express from 'express';
 import type { StatusResult } from 'simple-git';
@@ -12,12 +11,13 @@ import { SourceControlPreferencesService } from '@/environments.ee/source-contro
 import { SourceControlService } from '@/environments.ee/source-control/source-control.service.ee';
 import type { ImportResult } from '@/environments.ee/source-control/types/import-result';
 import { EventService } from '@/events/event.service';
+import type { AuthenticatedRequest } from '@/requests';
 
-import { apiKeyHasScopeWithGlobalScopeFallback } from '../../shared/middlewares/global.middleware';
+import { globalScope } from '../../shared/middlewares/global.middleware';
 
 export = {
 	pull: [
-		apiKeyHasScopeWithGlobalScopeFallback({ scope: 'sourceControl:pull' }),
+		globalScope('sourceControl:pull'),
 		async (
 			req: AuthenticatedRequest,
 			res: express.Response,
@@ -40,7 +40,7 @@ export = {
 
 				if (result.statusCode === 200) {
 					Container.get(EventService).emit('source-control-user-pulled-api', {
-						...getTrackingInformationFromPullResult(req.user.id, result.statusResult),
+						...getTrackingInformationFromPullResult(result.statusResult),
 						forced: payload.force ?? false,
 					});
 					return res.status(200).send(result.statusResult);

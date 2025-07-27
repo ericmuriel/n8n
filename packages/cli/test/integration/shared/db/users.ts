@@ -1,42 +1,26 @@
-import { randomEmail, randomName, randomValidPassword } from '@n8n/backend-test-utils';
-import { AuthIdentity, AuthIdentityRepository, UserRepository } from '@n8n/db';
-import { type User } from '@n8n/db';
 import { Container } from '@n8n/di';
-import type { ApiKeyScope, GlobalRole } from '@n8n/permissions';
-import { getApiKeyScopesForRole } from '@n8n/permissions';
 import { hash } from 'bcryptjs';
 
+import { AuthIdentity } from '@/databases/entities/auth-identity';
+import { type GlobalRole, type User } from '@/databases/entities/user';
+import { AuthIdentityRepository } from '@/databases/repositories/auth-identity.repository';
+import { AuthUserRepository } from '@/databases/repositories/auth-user.repository';
+import { UserRepository } from '@/databases/repositories/user.repository';
 import { MfaService } from '@/mfa/mfa.service';
 import { TOTPService } from '@/mfa/totp.service';
 import { PublicApiKeyService } from '@/services/public-api-key.service';
 
-type ApiKeyOptions = {
-	expiresAt?: number | null;
-	scopes?: ApiKeyScope[];
-};
+import { randomEmail, randomName, randomValidPassword } from '../random';
 
 // pre-computed bcrypt hash for the string 'password', using `await hash('password', 10)`
 const passwordHash = '$2a$10$njedH7S6V5898mj6p0Jr..IGY9Ms.qNwR7RbSzzX9yubJocKfvGGK';
-
-// A null password value means that no password will be set in the database
-// rendering the user as pending, an undefined value means we default
-// to 'password' as password.
-// Also we are hashing the plaintext password here if necessary
-async function handlePasswordSetup(password: string | null | undefined): Promise<string | null> {
-	if (password === undefined) {
-		return passwordHash;
-	} else if (password === null) {
-		return null;
-	}
-	return await hash(password, 1);
-}
 
 /** Store a new user object, defaulting to a `member` */
 export async function newUser(attributes: Partial<User> = {}): Promise<User> {
 	const { email, password, firstName, lastName, role, ...rest } = attributes;
 	return Container.get(UserRepository).create({
 		email: email ?? randomEmail(),
-		password: await handlePasswordSetup(password),
+		password: password ? await hash(password, 1) : passwordHash,
 		firstName: firstName ?? randomName(),
 		lastName: lastName ?? randomName(),
 		role: role ?? 'global:member',
@@ -48,6 +32,7 @@ export async function newUser(attributes: Partial<User> = {}): Promise<User> {
 export async function createUser(attributes: Partial<User> = {}): Promise<User> {
 	const userInstance = await newUser(attributes);
 	const { user } = await Container.get(UserRepository).createUserWithProject(userInstance);
+	user.computeIsOwner();
 	return user;
 }
 
@@ -82,13 +67,10 @@ export async function createUserWithMfaEnabled(
 		email,
 	});
 
-	await Container.get(UserRepository).update(user.id, {
+	await Container.get(AuthUserRepository).update(user.id, {
 		mfaSecret: encryptedSecret,
 		mfaRecoveryCodes: encryptedRecoveryCodes,
 	});
-
-	user.mfaSecret = encryptedSecret;
-	user.mfaRecoveryCodes = encryptedRecoveryCodes;
 
 	return {
 		user,
@@ -100,35 +82,28 @@ export async function createUserWithMfaEnabled(
 
 export const addApiKey = async (
 	user: User,
-	{ expiresAt = null, scopes = [] }: { expiresAt?: number | null; scopes?: ApiKeyScope[] } = {},
+	{ expiresAt = null }: { expiresAt?: number | null } = {},
 ) => {
 	return await Container.get(PublicApiKeyService).createPublicApiKeyForUser(user, {
 		label: randomName(),
 		expiresAt,
-		scopes: scopes.length ? scopes : getApiKeyScopesForRole(user.role),
 	});
 };
 
-export async function createOwnerWithApiKey({ expiresAt = null, scopes = [] }: ApiKeyOptions = {}) {
+export async function createOwnerWithApiKey({
+	expiresAt = null,
+}: { expiresAt?: number | null } = {}) {
 	const owner = await createOwner();
-	const apiKey = await addApiKey(owner, { expiresAt, scopes });
+	const apiKey = await addApiKey(owner, { expiresAt });
 	owner.apiKeys = [apiKey];
 	return owner;
 }
 
 export async function createMemberWithApiKey({
 	expiresAt = null,
-	scopes = [],
-}: ApiKeyOptions = {}) {
+}: { expiresAt?: number | null } = {}) {
 	const member = await createMember();
-	const apiKey = await addApiKey(member, { expiresAt, scopes });
-	member.apiKeys = [apiKey];
-	return member;
-}
-
-export async function createAdminWithApiKey({ expiresAt = null, scopes = [] }: ApiKeyOptions = {}) {
-	const member = await createAdmin();
-	const apiKey = await addApiKey(member, { expiresAt, scopes });
+	const apiKey = await addApiKey(member, { expiresAt });
 	member.apiKeys = [apiKey];
 	return member;
 }

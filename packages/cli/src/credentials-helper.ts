@@ -2,11 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import type { CredentialsEntity, ICredentialsDb } from '@n8n/db';
-import { CredentialsRepository, SharedCredentialsRepository } from '@n8n/db';
 import { Service } from '@n8n/di';
 // eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
-import { EntityNotFoundError, In } from '@n8n/typeorm';
+import { In } from '@n8n/typeorm';
 import { Credentials, getAdditionalKeys } from 'n8n-core';
 import type {
 	ICredentialDataDecryptedObject,
@@ -28,16 +26,14 @@ import type {
 	IExecuteData,
 	IDataObject,
 } from 'n8n-workflow';
-import {
-	ICredentialsHelper,
-	NodeHelpers,
-	Workflow,
-	UnexpectedError,
-	isExpression,
-} from 'n8n-workflow';
+import { ICredentialsHelper, NodeHelpers, Workflow, UnexpectedError } from 'n8n-workflow';
 
 import { CredentialTypes } from '@/credential-types';
 import { CredentialsOverwrites } from '@/credentials-overwrites';
+import type { CredentialsEntity } from '@/databases/entities/credentials-entity';
+import { CredentialsRepository } from '@/databases/repositories/credentials.repository';
+import { SharedCredentialsRepository } from '@/databases/repositories/shared-credentials.repository';
+import type { ICredentialsDb } from '@/interfaces';
 
 import { RESPONSE_ERROR_MESSAGES } from './constants';
 import { CredentialNotFoundError } from './errors/credential-not-found.error';
@@ -214,7 +210,7 @@ export class CredentialsHelper extends ICredentialsHelper {
 		workflow: Workflow,
 		node: INode,
 	): string {
-		if (!isExpression(parameterValue)) {
+		if (typeof parameterValue !== 'string' || parameterValue.charAt(0) !== '=') {
 			return parameterValue;
 		}
 
@@ -263,11 +259,7 @@ export class CredentialsHelper extends ICredentialsHelper {
 				type,
 			});
 		} catch (error) {
-			if (error instanceof EntityNotFoundError) {
-				throw new CredentialNotFoundError(nodeCredential.id, type);
-			}
-
-			throw error;
+			throw new CredentialNotFoundError(nodeCredential.id, type);
 		}
 
 		return new Credentials(
@@ -337,29 +329,33 @@ export class CredentialsHelper extends ICredentialsHelper {
 			return decryptedDataOriginal;
 		}
 
-		return await this.applyDefaultsAndOverwrites(
+		await additionalData?.secretsHelpers?.waitForInit();
+
+		const canUseSecrets = await this.credentialCanUseExternalSecrets(nodeCredentials);
+
+		return this.applyDefaultsAndOverwrites(
 			additionalData,
 			decryptedDataOriginal,
-			nodeCredentials,
 			type,
 			mode,
 			executeData,
 			expressionResolveValues,
+			canUseSecrets,
 		);
 	}
 
 	/**
 	 * Applies credential default data and overwrites
 	 */
-	async applyDefaultsAndOverwrites(
+	applyDefaultsAndOverwrites(
 		additionalData: IWorkflowExecuteAdditionalData,
 		decryptedDataOriginal: ICredentialDataDecryptedObject,
-		credential: INodeCredentialsDetails,
 		type: string,
 		mode: WorkflowExecuteMode,
 		executeData?: IExecuteData,
 		expressionResolveValues?: ICredentialsExpressionResolveValues,
-	): Promise<ICredentialDataDecryptedObject> {
+		canUseSecrets?: boolean,
+	): ICredentialDataDecryptedObject {
 		const credentialsProperties = this.getCredentialsProperties(type);
 
 		// Load and apply the credentials overwrites if any exist
@@ -384,9 +380,8 @@ export class CredentialsHelper extends ICredentialsHelper {
 			decryptedData.oauthTokenData = decryptedDataOriginal.oauthTokenData;
 		}
 
-		const canUseExternalSecrets = await this.credentialCanUseExternalSecrets(credential);
 		const additionalKeys = getAdditionalKeys(additionalData, mode, null, {
-			secretsEnabled: canUseExternalSecrets,
+			secretsEnabled: canUseSecrets,
 		});
 
 		if (expressionResolveValues) {
@@ -453,33 +448,6 @@ export class CredentialsHelper extends ICredentialsHelper {
 			type,
 		};
 
-		// @ts-ignore CAT-957
-		await this.credentialsRepository.update(findQuery, newCredentialsData);
-	}
-
-	/**
-	 * Updates credential's oauth token data in the database
-	 */
-	async updateCredentialsOauthTokenData(
-		nodeCredentials: INodeCredentialsDetails,
-		type: string,
-		data: ICredentialDataDecryptedObject,
-	): Promise<void> {
-		const credentials = await this.getCredentials(nodeCredentials, type);
-
-		credentials.updateData({ oauthTokenData: data.oauthTokenData });
-		const newCredentialsData = credentials.getDataToSave() as ICredentialsDb;
-
-		// Add special database related data
-		newCredentialsData.updatedAt = new Date();
-
-		// Save the credentials in DB
-		const findQuery = {
-			id: credentials.id,
-			type,
-		};
-
-		// @ts-ignore CAT-957
 		await this.credentialsRepository.update(findQuery, newCredentialsData);
 	}
 

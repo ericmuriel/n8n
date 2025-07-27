@@ -22,7 +22,7 @@ export const requestOperations: INodeProperties[] = [
 				routing: {
 					request: {
 						method: 'GET',
-						url: '=/api/bin/{{$parameter["binId"]}}/req/{{$parameter["requestId"]}}',
+						url: '=/developers/postbin/api/bin/{{$parameter["binId"]}}/req/{{$parameter["requestId"]}}',
 					},
 					send: {
 						preSend: [
@@ -40,7 +40,7 @@ export const requestOperations: INodeProperties[] = [
 				routing: {
 					request: {
 						method: 'GET',
-						url: '=/api/bin/{{$parameter["binId"]}}/req/shift',
+						url: '=/developers/postbin/api/bin/{{$parameter["binId"]}}/req/shift',
 					},
 					send: {
 						preSend: [

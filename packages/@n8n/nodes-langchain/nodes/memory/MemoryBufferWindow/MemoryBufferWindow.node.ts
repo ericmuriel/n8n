@@ -1,3 +1,4 @@
+/* eslint-disable n8n-nodes-base/node-dirname-against-convention */
 import type { BufferWindowMemoryInput } from 'langchain/memory';
 import { BufferWindowMemory } from 'langchain/memory';
 import {
@@ -88,7 +89,6 @@ export class MemoryBufferWindow implements INodeType {
 			categories: ['AI'],
 			subcategories: {
 				AI: ['Memory'],
-				Memory: ['For beginners'],
 			},
 			resources: {
 				primaryDocumentation: [
@@ -98,9 +98,9 @@ export class MemoryBufferWindow implements INodeType {
 				],
 			},
 		},
-
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-inputs-wrong-regular-node
 		inputs: [],
-
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-outputs-wrong
 		outputs: [NodeConnectionTypes.AiMemory],
 		outputNames: ['Memory'],
 		properties: [

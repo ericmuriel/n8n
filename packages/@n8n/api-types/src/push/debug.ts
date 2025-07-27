@@ -1,4 +1,4 @@
-export type SendConsoleMessage = {
+type SendConsoleMessage = {
 	type: 'sendConsoleMessage';
 	data: {
 		source: string;

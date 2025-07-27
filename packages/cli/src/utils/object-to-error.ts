@@ -1,4 +1,4 @@
-import { isObjectLiteral } from '@n8n/backend-common';
+import { isObjectLiteral } from 'n8n-core';
 import { NodeOperationError } from 'n8n-workflow';
 import type { Workflow } from 'n8n-workflow';
 

@@ -3,9 +3,10 @@ import { computed, onMounted, ref, watch } from 'vue';
 import TemplateDetails from '@/components/TemplateDetails.vue';
 import TemplateList from '@/components/TemplateList.vue';
 import TemplatesView from './TemplatesView.vue';
-import type { ITemplatesWorkflow } from '@n8n/rest-api-client/api/templates';
+import type { ITemplatesWorkflow } from '@/Interface';
 import { VIEWS } from '@/constants';
 import { useTemplatesStore } from '@/stores/templates.store';
+import { usePostHog } from '@/stores/posthog.store';
 import { useTemplateWorkflow } from '@/utils/templates/templateActions';
 import { useExternalHooks } from '@/composables/useExternalHooks';
 import { useNodeTypesStore } from '@/stores/nodeTypes.store';
@@ -13,10 +14,11 @@ import { isFullTemplatesCollection } from '@/utils/templates/typeGuards';
 import { useRoute, useRouter } from 'vue-router';
 import { useTelemetry } from '@/composables/useTelemetry';
 import { useDocumentTitle } from '@/composables/useDocumentTitle';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 
 const externalHooks = useExternalHooks();
 const templatesStore = useTemplatesStore();
+const posthogStore = usePostHog();
 const nodeTypesStore = useNodeTypesStore();
 
 const route = useRoute();
@@ -62,6 +64,7 @@ const onOpenTemplate = ({ event, id }: { event: MouseEvent; id: number }) => {
 
 const onUseWorkflow = async ({ event, id }: { event: MouseEvent; id: number }) => {
 	await useTemplateWorkflow({
+		posthogStore,
 		router,
 		templateId: `${id}`,
 		inNewBrowserTab: event.metaKey || event.ctrlKey,
@@ -75,8 +78,8 @@ const onUseWorkflow = async ({ event, id }: { event: MouseEvent; id: number }) =
 
 const navigateTo = (e: MouseEvent, page: string, id: string) => {
 	if (e.metaKey || e.ctrlKey) {
-		const { href } = router.resolve({ name: page, params: { id } });
-		window.open(href, '_blank');
+		const route = router.resolve({ name: page, params: { id } });
+		window.open(route.href, '_blank');
 		return;
 	} else {
 		void router.push({ name: page, params: { id } });
@@ -134,16 +137,8 @@ onMounted(async () => {
 				<div :class="$style.mainContent">
 					<div v-if="loading || isFullTemplatesCollection(collection)" :class="$style.markdown">
 						<n8n-markdown
-							:content="
-								isFullTemplatesCollection(collection) && collection.description
-									? collection.description
-									: ''
-							"
-							:images="
-								isFullTemplatesCollection(collection) && collection.image
-									? collection.image
-									: undefined
-							"
+							:content="isFullTemplatesCollection(collection) && collection.description"
+							:images="isFullTemplatesCollection(collection) && collection.image"
 							:loading="loading"
 						/>
 					</div>

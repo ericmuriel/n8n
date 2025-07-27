@@ -1,14 +1,17 @@
 <script lang="ts" setup>
-import { useI18n } from '@n8n/i18n';
-import { generateBarChartOptions } from '@/features/insights/chartjs.utils';
-import { GRANULARITY_DATE_FORMAT_MASK } from '@/features/insights/insights.constants';
-import { useCssVar } from '@vueuse/core';
-import type { ChartData } from 'chart.js';
 import { computed } from 'vue';
 import { Bar } from 'vue-chartjs';
-import type { ChartProps } from './insightChartProps';
+import type { ChartData } from 'chart.js';
+import { useCssVar } from '@vueuse/core';
+import dateformat from 'dateformat';
+import type { InsightsByTime, InsightsSummaryType } from '@n8n/api-types';
+import { generateBarChartOptions } from '@/features/insights/chartjs.utils';
+import { useI18n } from '@/composables/useI18n';
 
-const props = defineProps<ChartProps>();
+const props = defineProps<{
+	data: InsightsByTime[];
+	type: InsightsSummaryType;
+}>();
 
 const i18n = useI18n();
 
@@ -17,7 +20,8 @@ const chartOptions = computed(() =>
 	generateBarChartOptions({
 		plugins: {
 			tooltip: {
-				itemSort: (a) => (a.dataset.label === i18n.baseText('insights.chart.succeeded') ? -1 : 1),
+				itemSort: (a) =>
+					a.dataset.label === i18n.baseText('insights.banner.title.succeeded') ? -1 : 1,
 			},
 		},
 	}),
@@ -29,7 +33,7 @@ const chartData = computed<ChartData<'bar'>>(() => {
 	const failedData: number[] = [];
 
 	for (const entry of props.data) {
-		labels.push(GRANULARITY_DATE_FORMAT_MASK[props.granularity](entry.date));
+		labels.push(dateformat(entry.date, 'd. mmm'));
 		succeededData.push(entry.values.succeeded);
 		failedData.push(entry.values.failed);
 	}
@@ -38,12 +42,12 @@ const chartData = computed<ChartData<'bar'>>(() => {
 		labels,
 		datasets: [
 			{
-				label: i18n.baseText('insights.chart.failed'),
+				label: i18n.baseText('insights.banner.title.failed'),
 				data: failedData,
 				backgroundColor: colorPrimary.value,
 			},
 			{
-				label: i18n.baseText('insights.chart.succeeded'),
+				label: i18n.baseText('insights.banner.title.succeeded'),
 				data: succeededData,
 				backgroundColor: '#3E999F',
 			},
@@ -53,7 +57,7 @@ const chartData = computed<ChartData<'bar'>>(() => {
 </script>
 
 <template>
-	<Bar data-test-id="insights-chart-total" :data="chartData" :options="chartOptions" />
+	<Bar :data="chartData" :options="chartOptions" />
 </template>
 
 <style lang="scss" module></style>

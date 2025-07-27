@@ -2,10 +2,9 @@ import type { Callbacks } from '@langchain/core/callbacks/manager';
 import type { Embeddings } from '@langchain/core/embeddings';
 import type { QdrantLibArgs } from '@langchain/qdrant';
 import { QdrantVectorStore } from '@langchain/qdrant';
-import { type Schemas as QdrantSchemas } from '@qdrant/js-client-rest';
+import type { Schemas as QdrantSchemas } from '@qdrant/js-client-rest';
 import type { IDataObject, INodeProperties } from 'n8n-workflow';
 
-import { createQdrantClient, type QdrantCredential } from './Qdrant.utils';
 import { createVectorStoreNode } from '../shared/createVectorStoreNode/createVectorStoreNode';
 import { qdrantCollectionsSearch } from '../shared/createVectorStoreNode/methods/listSearch';
 import { qdrantCollectionRLC } from '../shared/descriptions';
@@ -22,7 +21,12 @@ class ExtendedQdrantVectorStore extends QdrantVectorStore {
 		return await super.fromExistingCollection(embeddings, args);
 	}
 
-	async similaritySearch(query: string, k: number, filter?: IDataObject, callbacks?: Callbacks) {
+	async similaritySearch(
+		query: string,
+		k: number,
+		filter?: IDataObject,
+		callbacks?: Callbacks | undefined,
+	) {
 		const mergedFilter = { ...ExtendedQdrantVectorStore.defaultFilter, ...filter };
 		return await super.similaritySearch(query, k, mergedFilter, callbacks);
 	}
@@ -102,10 +106,9 @@ export class VectorStoreQdrant extends createVectorStoreNode<ExtendedQdrantVecto
 
 		const credentials = await context.getCredentials('qdrantApi');
 
-		const client = createQdrantClient(credentials as QdrantCredential);
-
 		const config: QdrantLibArgs = {
-			client,
+			url: credentials.qdrantUrl as string,
+			apiKey: credentials.apiKey as string,
 			collectionName: collection,
 		};
 
@@ -123,10 +126,9 @@ export class VectorStoreQdrant extends createVectorStoreNode<ExtendedQdrantVecto
 		};
 		const credentials = await context.getCredentials('qdrantApi');
 
-		const client = createQdrantClient(credentials as QdrantCredential);
-
 		const config: QdrantLibArgs = {
-			client,
+			url: credentials.qdrantUrl as string,
+			apiKey: credentials.apiKey as string,
 			collectionName,
 			collectionConfig,
 		};

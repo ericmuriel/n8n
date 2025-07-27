@@ -16,7 +16,6 @@ import type {
 	Workflow,
 	WorkflowExecuteMode,
 	NodeConnectionType,
-	ISourceData,
 } from 'n8n-workflow';
 import { createDeferredPromise, NodeConnectionTypes } from 'n8n-workflow';
 
@@ -31,7 +30,7 @@ import { constructExecutionMetaData } from './utils/construct-execution-metadata
 import { copyInputItems } from './utils/copy-input-items';
 import { getDeduplicationHelperFunctions } from './utils/deduplication-helper-functions';
 import { getFileSystemHelperFunctions } from './utils/file-system-helper-functions';
-// eslint-disable-next-line import-x/no-cycle
+// eslint-disable-next-line import/no-cycle
 import { getInputConnectionData } from './utils/get-input-connection-data';
 import { normalizeItems } from './utils/normalize-items';
 import { getRequestHelperFunctions } from './utils/request-helper-functions';
@@ -42,8 +41,6 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 	readonly helpers: ISupplyDataFunctions['helpers'];
 
 	readonly getNodeParameter: ISupplyDataFunctions['getNodeParameter'];
-
-	readonly parentNode?: INode;
 
 	constructor(
 		workflow: Workflow,
@@ -58,7 +55,6 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 		executeData: IExecuteData,
 		private readonly closeFunctions: CloseFunction[],
 		abortSignal?: AbortSignal,
-		parentNode?: INode,
 	) {
 		super(
 			workflow,
@@ -72,8 +68,6 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 			executeData,
 			abortSignal,
 		);
-
-		this.parentNode = parentNode;
 
 		this.helpers = {
 			createDeferredPromise,
@@ -132,7 +126,6 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 			this.executeData,
 			this.closeFunctions,
 			this.abortSignal,
-			this.parentNode,
 		);
 		context.addInputData(NodeConnectionTypes.AiTool, replacements.inputData);
 		return context;
@@ -167,19 +160,16 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 		return super.getInputItems(inputIndex, connectionType) ?? [];
 	}
 
-	getNextRunIndex(): number {
-		const nodeName = this.node.name;
-		return this.runExecutionData.resultData.runData[nodeName]?.length ?? 0;
-	}
-
 	/** @deprecated create a context object with inputData for every runIndex */
 	addInputData(
 		connectionType: AINodeConnectionType,
 		data: INodeExecutionData[][],
-		runIndex?: number,
 	): { index: number } {
 		const nodeName = this.node.name;
-		const currentNodeRunIndex = this.getNextRunIndex();
+		let currentNodeRunIndex = 0;
+		if (this.runExecutionData.resultData.runData.hasOwnProperty(nodeName)) {
+			currentNodeRunIndex = this.runExecutionData.resultData.runData[nodeName].length;
+		}
 
 		this.addExecutionDataFunctions(
 			'input',
@@ -187,8 +177,6 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 			connectionType,
 			nodeName,
 			currentNodeRunIndex,
-			undefined,
-			runIndex,
 		).catch((error) => {
 			this.logger.warn(
 				`There was a problem logging input data of node "${nodeName}": ${
@@ -207,7 +195,6 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 		currentNodeRunIndex: number,
 		data: INodeExecutionData[][] | ExecutionBaseError,
 		metadata?: ITaskMetadata,
-		sourceNodeRunIndex?: number,
 	): void {
 		const nodeName = this.node.name;
 		this.addExecutionDataFunctions(
@@ -217,7 +204,6 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 			nodeName,
 			currentNodeRunIndex,
 			metadata,
-			sourceNodeRunIndex,
 		).catch((error) => {
 			this.logger.warn(
 				`There was a problem logging output data of node "${nodeName}": ${
@@ -235,32 +221,21 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 		sourceNodeName: string,
 		currentNodeRunIndex: number,
 		metadata?: ITaskMetadata,
-		sourceNodeRunIndex?: number,
 	): Promise<void> {
 		const {
 			additionalData,
 			runExecutionData,
-			runIndex: currentRunIndex,
+			runIndex: sourceNodeRunIndex,
 			node: { name: nodeName },
 		} = this;
 
 		let taskData: ITaskData | undefined;
-		const source: ISourceData[] = this.parentNode
-			? [
-					{
-						previousNode: this.parentNode.name,
-						previousNodeRun: sourceNodeRunIndex ?? currentRunIndex,
-					},
-				]
-			: [];
-
 		if (type === 'input') {
 			taskData = {
-				startTime: Date.now(),
+				startTime: new Date().getTime(),
 				executionTime: 0,
-				executionIndex: additionalData.currentNodeExecutionIndex++,
 				executionStatus: 'running',
-				source,
+				source: [null],
 			};
 		} else {
 			// At the moment we expect that there is always an input sent before the output
@@ -273,7 +248,6 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 				return;
 			}
 			taskData.metadata = metadata;
-			taskData.source = source;
 		}
 		taskData = taskData!;
 
@@ -303,10 +277,10 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 			}
 
 			runExecutionData.resultData.runData[nodeName][currentNodeRunIndex] = taskData;
-			await additionalData.hooks?.runHook('nodeExecuteBefore', [nodeName, taskData]);
+			await additionalData.hooks?.runHook('nodeExecuteBefore', [nodeName]);
 		} else {
 			// Outputs
-			taskData.executionTime = Date.now() - taskData.startTime;
+			taskData.executionTime = new Date().getTime() - taskData.startTime;
 
 			await additionalData.hooks?.runHook('nodeExecuteAfter', [
 				nodeName,
@@ -324,13 +298,14 @@ export class SupplyDataContext extends BaseExecuteContext implements ISupplyData
 				runExecutionData.executionData!.metadata[sourceNodeName] = [];
 				sourceTaskData = runExecutionData.executionData!.metadata[sourceNodeName];
 			}
-			if (!sourceTaskData[currentNodeRunIndex]) {
-				sourceTaskData[currentNodeRunIndex] = {
+
+			if (!sourceTaskData[sourceNodeRunIndex]) {
+				sourceTaskData[sourceNodeRunIndex] = {
 					subRun: [],
 				};
 			}
 
-			sourceTaskData[currentNodeRunIndex].subRun!.push({
+			sourceTaskData[sourceNodeRunIndex].subRun!.push({
 				node: nodeName,
 				runIndex: currentNodeRunIndex,
 			});

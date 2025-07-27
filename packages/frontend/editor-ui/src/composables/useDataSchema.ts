@@ -1,4 +1,4 @@
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import type { INodeUi, Optional, Primitives, Schema, SchemaType } from '@/Interface';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import { generatePath, getNodeParentExpression } from '@/utils/mappingUtils';
@@ -6,7 +6,7 @@ import { isObject } from '@/utils/objectUtils';
 import { isObj } from '@/utils/typeGuards';
 import { isPresent, shorten } from '@/utils/typesUtils';
 import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
-import merge from 'lodash/merge';
+import { merge } from 'lodash-es';
 import {
 	type IDataObject,
 	type INodeExecutionData,
@@ -15,7 +15,6 @@ import {
 	NodeConnectionTypes,
 } from 'n8n-workflow';
 import { ref } from 'vue';
-import { type IconName } from '@n8n/design-system/components/N8nIcon/icons';
 
 export function useDataSchema() {
 	function getSchema(
@@ -236,14 +235,12 @@ export type SchemaNode = {
 	preview: boolean;
 	isNodeExecuted: boolean;
 	hasBinary: boolean;
-	runIndex: number;
-	isDataEmpty: boolean;
 };
 
 export type RenderItem = {
 	type: 'item';
 	id: string;
-	icon: IconName;
+	icon: string;
 	title?: string;
 	path?: string;
 	level?: number;
@@ -272,7 +269,7 @@ export type RenderHeader = {
 export type RenderIcon = {
 	id: string;
 	type: 'icon';
-	icon: IconName;
+	icon: string;
 	tooltip: string;
 };
 
@@ -288,25 +285,25 @@ export type RenderEmpty = {
 	type: 'empty';
 	level: number;
 	nodeName: string;
-	key: 'emptyData' | 'emptySchema' | 'emptySchemaWithBinary' | 'executeSchema';
+	key: 'emptyData' | 'emptyDataWithBinary' | 'executeSchema';
 };
 
 export type Renders = RenderHeader | RenderItem | RenderIcon | RenderNotice | RenderEmpty;
 
-const icons: { [key: string]: IconName } = {
-	object: 'box',
+const icons = {
+	object: 'cube',
 	array: 'list',
-	['string']: 'case-upper',
-	null: 'case-upper',
-	['number']: 'hash',
-	['boolean']: 'square-check',
+	['string']: 'font',
+	null: 'font',
+	['number']: 'hashtag',
+	['boolean']: 'check-square',
 	function: 'code',
 	bigint: 'calculator',
 	symbol: 'sun',
 	['undefined']: 'ban',
 } as const;
 
-const getIconBySchemaType = (type: Schema['type']): IconName => icons[type];
+const getIconBySchemaType = (type: Schema['type']): string => icons[type];
 
 const emptyItem = (
 	key: RenderEmpty['key'],
@@ -322,11 +319,11 @@ const emptyItem = (
 const moreFieldsItem = (): RenderIcon => ({
 	id: `moreFields-${window.crypto.randomUUID()}`,
 	type: 'icon',
-	icon: 'ellipsis',
+	icon: 'ellipsis-h',
 	tooltip: useI18n().baseText('dataMapping.schemaView.previewExtraFields'),
 });
 
-const isEmptySchema = (schema: Schema) => {
+const isDataEmpty = (schema: Schema) => {
 	// Utilize the generated schema instead of looping over the entire data again
 	// The schema for empty data is { type: 'object', value: [] }
 	const isObjectOrArray = schema.type === 'object';
@@ -339,7 +336,8 @@ const prefixTitle = (title: string, prefix?: string) => (prefix ? `${prefix}[${t
 
 export const useFlattenSchema = () => {
 	const closedNodes = ref<Set<string>>(new Set());
-	const toggleNode = (id: string) => {
+	const headerIds = ref<Set<string>>(new Set());
+	const toggleLeaf = (id: string) => {
 		if (closedNodes.value.has(id)) {
 			closedNodes.value.delete(id);
 		} else {
@@ -347,8 +345,16 @@ export const useFlattenSchema = () => {
 		}
 	};
 
+	const toggleNode = (id: string) => {
+		if (closedNodes.value.has(id)) {
+			closedNodes.value = new Set(headerIds.value);
+			closedNodes.value.delete(id);
+		} else {
+			closedNodes.value.add(id);
+		}
+	};
+
 	const flattenSchema = ({
-		isDataEmpty,
 		schema,
 		nodeType,
 		nodeName,
@@ -358,7 +364,6 @@ export const useFlattenSchema = () => {
 		level = 0,
 		preview,
 	}: {
-		isDataEmpty: boolean;
 		schema: Schema;
 		expressionPrefix?: string;
 		nodeType?: string;
@@ -369,13 +374,13 @@ export const useFlattenSchema = () => {
 		preview?: boolean;
 	}): Renders[] => {
 		// only show empty item for the first level
-		if (isEmptySchema(schema) && level < 0) {
-			return [emptyItem(isDataEmpty ? 'emptyData' : 'emptySchema')];
+		if (isDataEmpty(schema) && level < 0) {
+			return [emptyItem('emptyData')];
 		}
 
 		const expression = `{{ ${expressionPrefix ? expressionPrefix + schema.path : schema.path.slice(1)} }}`;
 
-		const id = `${nodeName}-${expression}`;
+		const id = expression;
 
 		if (Array.isArray(schema.value)) {
 			const items: Renders[] = [];
@@ -406,7 +411,6 @@ export const useFlattenSchema = () => {
 					.map((item) => {
 						const itemPrefix = schema.type === 'array' ? schema.key : '';
 						return flattenSchema({
-							isDataEmpty,
 							schema: item,
 							expressionPrefix,
 							nodeType,
@@ -446,6 +450,8 @@ export const useFlattenSchema = () => {
 		nodes: SchemaNode[],
 		additionalInfo: (node: INodeUi) => string,
 	) => {
+		headerIds.value.clear();
+
 		return nodes.reduce<Renders[]>((acc, item) => {
 			acc.push({
 				title: item.node.name,
@@ -458,27 +464,25 @@ export const useFlattenSchema = () => {
 				preview: item.preview,
 			});
 
+			headerIds.value.add(item.node.name);
+
 			if (closedNodes.value.has(item.node.name)) {
 				return acc;
 			}
 
-			if (isEmptySchema(item.schema)) {
-				if (!item.isNodeExecuted) {
-					acc.push(emptyItem('executeSchema', { level: 1 }));
-					return acc;
-				}
+			if (isDataEmpty(item.schema) && !item.isNodeExecuted && !item.hasBinary) {
+				acc.push(emptyItem('executeSchema', { nodeName: item.node.name, level: 1 }));
+				return acc;
+			}
 
-				if (item.isDataEmpty) {
-					acc.push(emptyItem('emptyData', { level: 1 }));
-					return acc;
-				}
-				acc.push(emptyItem(item.hasBinary ? 'emptySchemaWithBinary' : 'emptySchema', { level: 1 }));
+			if (isDataEmpty(item.schema)) {
+				const key = item.hasBinary ? 'emptyDataWithBinary' : 'emptyData';
+				acc.push(emptyItem(key, { level: 1 }));
 				return acc;
 			}
 
 			acc = acc.concat(
 				flattenSchema({
-					isDataEmpty: item.isDataEmpty,
 					schema: item.schema,
 					depth: item.depth,
 					nodeType: item.node.type,
@@ -501,6 +505,7 @@ export const useFlattenSchema = () => {
 
 	return {
 		closedNodes,
+		toggleLeaf,
 		toggleNode,
 		flattenSchema,
 		flattenMultipleSchemas,

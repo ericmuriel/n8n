@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { i18n } from '@n8n/i18n';
+import { i18n } from '@/plugins/i18n';
 
 defineProps<{
 	isReadOnly?: boolean;
@@ -26,9 +26,9 @@ const emit = defineEmits<{
 			v-if="!isReadOnly"
 			type="tertiary"
 			:class="['n8n-input', $style.overrideCloseButton]"
-			:outline="false"
-			icon="x"
-			size="small"
+			outline="false"
+			icon="xmark"
+			size="xsmall"
 			@click="emit('close')"
 		/>
 	</div>
@@ -58,18 +58,16 @@ const emit = defineEmits<{
 }
 
 .overrideCloseButton {
-	padding: 0px var(--spacing-2xs);
+	padding: 0px 8px 3px; // the icon used is off-center vertically
 	border: 0px;
 	color: var(--color-text-base);
 	margin-left: auto;
 	--button-hover-background-color: transparent;
 	--button-active-background-color: transparent;
-	background-color: var(--color-foreground-base);
 }
 
 .contentOverrideContainer {
 	display: flex;
-	align-items: center;
 	white-space: nowrap;
 	width: 100%;
 	gap: var(--spacing-4xs);

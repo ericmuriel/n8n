@@ -1,5 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
+
+import { testWorkflows } from '@test/nodes/Helpers';
 
 describe('Test DiscordV2, channel => get', () => {
 	nock('https://discord.com/api/v10')
@@ -22,7 +23,6 @@ describe('Test DiscordV2, channel => get', () => {
 			nsfw: false,
 		});
 
-	new NodeTestHarness().setupTests({
-		workflowFiles: ['get.workflow.json'],
-	});
+	const workflows = ['nodes/Discord/test/v2/node/channel/get.workflow.json'];
+	testWorkflows(workflows);
 });

@@ -18,21 +18,25 @@ import {
 	// validateJSON,
 } from './GenericFunctions';
 
-const Status = {
+const Statuses = {
 	Open: 2,
 	Pending: 3,
 	Resolved: 4,
 	Closed: 5,
 } as const;
 
-const Priority = {
+type Status = (typeof Statuses)[keyof typeof Statuses];
+
+const Priorities = {
 	Low: 1,
 	Medium: 2,
 	High: 3,
 	Urgent: 4,
 } as const;
 
-const Source = {
+type Priority = (typeof Priorities)[keyof typeof Priorities];
+
+const Sources = {
 	Email: 1,
 	Portal: 2,
 	Phone: 3,
@@ -42,13 +46,7 @@ const Source = {
 	OutboundEmail: 10,
 } as const;
 
-type StatusKey = keyof typeof Status;
-type PriorityKey = keyof typeof Priority;
-type SourceKey = keyof typeof Source;
-
-type StatusValue = (typeof Status)[keyof typeof Status];
-type PriorityValue = (typeof Priority)[keyof typeof Priority];
-type SourceValue = (typeof Source)[keyof typeof Source];
+type Source = (typeof Sources)[keyof typeof Sources];
 
 interface ICreateTicketBody {
 	name?: string;
@@ -60,8 +58,8 @@ interface ICreateTicketBody {
 	unique_external_id?: string;
 	subject?: string | null;
 	type?: string;
-	status?: StatusValue;
-	priority?: PriorityValue;
+	status?: Status;
+	priority?: Priority;
 	description?: string;
 	responder_id?: number;
 	cc_emails?: [string];
@@ -71,7 +69,7 @@ interface ICreateTicketBody {
 	fr_due_by?: string;
 	group_id?: number;
 	product_id?: number;
-	source?: SourceValue;
+	source?: Source;
 	tags?: [string];
 	company_id?: number;
 }
@@ -1116,9 +1114,12 @@ export class Freshdesk implements INodeType {
 						const options = this.getNodeParameter('options', i);
 						//const jsonActive = this.getNodeParameter('jsonParameters') as boolean;
 						const body: ICreateTicketBody = {
-							status: Status[capitalize(status) as StatusKey],
-							priority: Priority[capitalize(priority) as PriorityKey],
-							source: Source[capitalize(source) as SourceKey],
+							// @ts-ignore
+							status: Status[capitalize(status)],
+							// @ts-ignore
+							priority: Priority[capitalize(priority)],
+							// @ts-ignore
+							source: Source[capitalize(source)],
 						};
 
 						if (requester === 'requesterId') {

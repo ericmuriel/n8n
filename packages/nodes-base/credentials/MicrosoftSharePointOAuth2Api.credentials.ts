@@ -6,8 +6,8 @@ export class MicrosoftSharePointOAuth2Api implements ICredentialType {
 	extends = ['microsoftOAuth2Api'];
 
 	icon: Icon = {
-		light: 'file:icons/microsoftSharePoint.svg',
-		dark: 'file:icons/microsoftSharePoint.svg',
+		light: 'file:icons/SharePoint.svg',
+		dark: 'file:icons/SharePoint.svg',
 	};
 
 	displayName = 'Microsoft SharePoint OAuth2 API';

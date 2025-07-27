@@ -1,4 +1,3 @@
-import { UnexpectedError } from 'n8n-workflow';
 import { Readable } from 'node:stream';
 import { createGunzip } from 'node:zlib';
 
@@ -28,7 +27,7 @@ describe('BinaryData/utils', () => {
 			const gunzip = createGunzip();
 			const body = Readable.from(Buffer.from('0001f8b080000000000000000', 'hex')).pipe(gunzip);
 			await expect(binaryToBuffer(body)).rejects.toThrow(
-				new UnexpectedError('Failed to decompress response'),
+				new Error('Failed to decompress response'),
 			);
 		});
 	});

@@ -1,18 +1,25 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import { readFileSync } from 'fs';
-import type { WorkflowTestData } from 'n8n-workflow';
+import type { IWorkflowBase, WorkflowTestData } from 'n8n-workflow';
 import path from 'path';
 
+import { executeWorkflow } from '@test/nodes/ExecuteWorkflow';
+import * as Helpers from '@test/nodes/Helpers';
+
 describe('Execute Spreadsheet File Node', () => {
-	const testHarness = new NodeTestHarness();
+	beforeEach(async () => {
+		await Helpers.initBinaryDataService();
+	});
+
 	const readBinaryFile = (fileName: string) =>
 		readFileSync(path.resolve(__dirname, fileName), 'base64');
 
 	const loadWorkflow = (fileName: string, csvName: string) => {
-		const workflowData = testHarness.readWorkflowJSON(fileName);
-		const node = workflowData.nodes.find((n) => n.name === 'Read Binary File')!;
-		node.parameters.fileSelector = path.join(__dirname, csvName);
-		return workflowData;
+		const workflow = Helpers.readJsonFileSync<IWorkflowBase>(
+			`nodes/SpreadsheetFile/test/${fileName}`,
+		);
+		const node = workflow.nodes.find((n) => n.name === 'Read Binary File');
+		node!.parameters.fileSelector = path.join(__dirname, csvName);
+		return workflow;
 	};
 
 	const tests: WorkflowTestData[] = [
@@ -22,7 +29,6 @@ describe('Execute Spreadsheet File Node', () => {
 				workflowData: loadWorkflow('workflow.json', 'spreadsheet.csv'),
 			},
 			output: {
-				assertBinaryData: true,
 				nodeData: {
 					'Read From File': [
 						[
@@ -195,6 +201,18 @@ describe('Execute Spreadsheet File Node', () => {
 	];
 
 	for (const testData of tests) {
-		testHarness.setupTest(testData);
+		// eslint-disable-next-line @typescript-eslint/no-loop-func
+		test(testData.description, async () => {
+			// execute workflow
+			const { result } = await executeWorkflow(testData);
+
+			// check if result node data matches expected test data
+			const resultNodeData = Helpers.getResultNodeData(result, testData);
+			resultNodeData.forEach(({ nodeName, resultData }) =>
+				expect(resultData).toEqual(testData.output.nodeData[nodeName]),
+			);
+
+			expect(result.finished).toEqual(true);
+		});
 	}
 });

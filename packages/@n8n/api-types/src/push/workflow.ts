@@ -1,11 +1,11 @@
-export type WorkflowActivated = {
+type WorkflowActivated = {
 	type: 'workflowActivated';
 	data: {
 		workflowId: string;
 	};
 };
 
-export type WorkflowFailedToActivate = {
+type WorkflowFailedToActivate = {
 	type: 'workflowFailedToActivate';
 	data: {
 		workflowId: string;
@@ -13,7 +13,7 @@ export type WorkflowFailedToActivate = {
 	};
 };
 
-export type WorkflowDeactivated = {
+type WorkflowDeactivated = {
 	type: 'workflowDeactivated';
 	data: {
 		workflowId: string;

@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import type { UsageTelemetry } from '@/stores/usage.store';
 import { useUsageStore } from '@/stores/usage.store';
 import { telemetry } from '@/plugins/telemetry';
-import { i18n as locale } from '@n8n/i18n';
+import { i18n as locale } from '@/plugins/i18n';
 import { useUIStore } from '@/stores/ui.store';
 import { useToast } from '@/composables/useToast';
 import { useDocumentTitle } from '@/composables/useDocumentTitle';
@@ -12,9 +12,8 @@ import { hasPermission } from '@/utils/rbac/permissions';
 import N8nInfoTip from '@n8n/design-system/components/N8nInfoTip';
 import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '@/constants';
 import { useUsersStore } from '@/stores/users.store';
-import { getResourcePermissions } from '@n8n/permissions';
+import { getResourcePermissions } from '@/permissions';
 import { usePageRedirectionHelper } from '@/composables/usePageRedirectionHelper';
-import { I18nT } from 'vue-i18n';
 
 const usageStore = useUsageStore();
 const route = useRoute();
@@ -165,7 +164,7 @@ const openCommunityRegisterModal = () => {
 		}}</n8n-heading>
 		<div v-if="!usageStore.isLoading">
 			<n8n-heading tag="h3" :class="$style.title" size="large">
-				<I18nT keypath="settings.usageAndPlan.description" tag="span" scope="global">
+				<i18n-t keypath="settings.usageAndPlan.description" tag="span">
 					<template #name>{{ badgedPlanName.name ?? usageStore.planName }}</template>
 					<template #type>
 						<span v-if="usageStore.planId">{{
@@ -173,16 +172,15 @@ const openCommunityRegisterModal = () => {
 						}}</span>
 						<span v-else>{{ locale.baseText('settings.usageAndPlan.edition') }}</span>
 					</template>
-				</I18nT>
+				</i18n-t>
 				<span v-if="badgedPlanName.badge && badgedPlanName.name" :class="$style.titleTooltip">
 					<N8nTooltip placement="top">
 						<template #content>
-							<I18nT
+							<i18n-t
 								v-if="isCommunityEditionRegistered"
 								keypath="settings.usageAndPlan.license.communityRegistered.tooltip"
-								scope="global"
 							>
-							</I18nT>
+							</i18n-t>
 						</template>
 						<N8nBadge>{{ badgedPlanName.badge }}</N8nBadge>
 					</N8nTooltip>
@@ -190,7 +188,7 @@ const openCommunityRegisterModal = () => {
 			</n8n-heading>
 
 			<N8nNotice v-if="isCommunity && canUserRegisterCommunityPlus" class="mt-0" theme="warning">
-				<I18nT keypath="settings.usageAndPlan.callOut" scope="global">
+				<i18n-t keypath="settings.usageAndPlan.callOut">
 					<template #link>
 						<N8nButton
 							class="pl-0 pr-0"
@@ -199,7 +197,7 @@ const openCommunityRegisterModal = () => {
 							@click="openCommunityRegisterModal"
 						/>
 					</template>
-				</I18nT>
+				</i18n-t>
 			</N8nNotice>
 
 			<div :class="$style.quota">
@@ -213,11 +211,10 @@ const openCommunityRegisterModal = () => {
 							:style="{ width: `${usageStore.executionPercentage}%` }"
 						></span>
 					</span>
-					<I18nT
+					<i18n-t
 						tag="span"
 						:class="$style.count"
 						keypath="settings.usageAndPlan.activeWorkflows.count"
-						scope="global"
 					>
 						<template #count>{{ usageStore.activeWorkflowTriggersCount }}</template>
 						<template #limit>
@@ -226,7 +223,7 @@ const openCommunityRegisterModal = () => {
 							}}</span>
 							<span v-else>{{ usageStore.activeWorkflowTriggersLimit }}</span>
 						</template>
-					</I18nT>
+					</i18n-t>
 				</div>
 			</div>
 

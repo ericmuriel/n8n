@@ -6,30 +6,22 @@ import WorkflowTagsDropdown from '@/components/WorkflowTagsDropdown.vue';
 import Modal from '@/components/Modal.vue';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useWorkflowsStore } from '@/stores/workflows.store';
-import type { WorkflowDataUpdate } from '@n8n/rest-api-client/api/workflows';
+import type { IWorkflowDataUpdate } from '@/Interface';
 import { createEventBus, type EventBus } from '@n8n/utils/event-bus';
 import { useCredentialsStore } from '@/stores/credentials.store';
 import { useWorkflowHelpers } from '@/composables/useWorkflowHelpers';
 import { useRouter } from 'vue-router';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { useTelemetry } from '@/composables/useTelemetry';
-import { useWorkflowSaving } from '@/composables/useWorkflowSaving';
 
 const props = defineProps<{
 	modalName: string;
 	isActive: boolean;
-	data: {
-		tags: string[];
-		id: string;
-		name: string;
-		externalEventBus?: EventBus;
-		parentFolderId?: string;
-	};
+	data: { tags: string[]; id: string; name: string; externalEventBus?: EventBus };
 }>();
 
 const router = useRouter();
-const workflowSaving = useWorkflowSaving({ router });
-const workflowHelpers = useWorkflowHelpers();
+const workflowHelpers = useWorkflowHelpers({ router });
 const { showMessage, showError } = useToast();
 const i18n = useI18n();
 const telemetry = useTelemetry();
@@ -80,13 +72,13 @@ const save = async (): Promise<void> => {
 		return;
 	}
 
-	const parentFolderId = props.data.parentFolderId;
+	const parentFolderId = router.currentRoute.value.params.folderId as string | undefined;
 
 	const currentWorkflowId = props.data.id;
 	isSaving.value = true;
 
 	try {
-		let workflowToUpdate: WorkflowDataUpdate | undefined;
+		let workflowToUpdate: IWorkflowDataUpdate | undefined;
 		if (currentWorkflowId !== PLACEHOLDER_EMPTY_WORKFLOW_ID) {
 			const {
 				createdAt,
@@ -105,7 +97,7 @@ const save = async (): Promise<void> => {
 			);
 		}
 
-		const workflowId = await workflowSaving.saveAsNewWorkflow({
+		const saved = await workflowHelpers.saveAsNewWorkflow({
 			name: workflowName,
 			data: workflowToUpdate,
 			tags: currentTagIds.value,
@@ -115,7 +107,7 @@ const save = async (): Promise<void> => {
 			parentFolderId,
 		});
 
-		if (workflowId) {
+		if (saved) {
 			closeDialog();
 			telemetry.track('User duplicated workflow', {
 				old_workflow_id: currentWorkflowId,

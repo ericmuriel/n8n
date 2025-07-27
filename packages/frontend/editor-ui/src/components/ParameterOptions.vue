@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { useI18n } from '@n8n/i18n';
-import {
-	isResourceLocatorValue,
-	type INodeProperties,
-	type NodeParameterValueType,
-} from 'n8n-workflow';
+import { useI18n } from '@/composables/useI18n';
+import type { INodeProperties, NodeParameterValueType } from 'n8n-workflow';
+import { isResourceLocatorValue } from '@/utils/typeGuards';
 import { isValueExpression } from '@/utils/nodeTypesUtils';
 import { computed } from 'vue';
 import { useNDVStore } from '@/stores/ndv.store';
-import { usePostHog } from '@/stores/posthog.store';
-import { AI_TRANSFORM_NODE_TYPE, FOCUS_PANEL_EXPERIMENT } from '@/constants';
-import { getParameterTypeOption } from '@/utils/nodeSettingsUtils';
+import { AI_TRANSFORM_NODE_TYPE } from '@/constants';
 
 interface Props {
 	parameter: INodeProperties;
@@ -22,7 +17,6 @@ interface Props {
 	iconOrientation?: 'horizontal' | 'vertical';
 	loading?: boolean;
 	loadingMessage?: string;
-	isContentOverridden?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -32,7 +26,6 @@ const props = withDefaults(defineProps<Props>(), {
 	iconOrientation: 'vertical',
 	loading: false,
 	loadingMessage: () => useI18n().baseText('genericHelpers.loading'),
-	isContentOverridden: false,
 });
 
 const emit = defineEmits<{
@@ -41,32 +34,13 @@ const emit = defineEmits<{
 }>();
 
 const i18n = useI18n();
-const ndvStore = useNDVStore();
-const posthogStore = usePostHog();
 
-const activeNode = computed(() => ndvStore.activeNode);
 const isDefault = computed(() => props.parameter.default === props.value);
 const isValueAnExpression = computed(() => isValueExpression(props.parameter, props.value));
-const isHtmlEditor = computed(
-	() => getParameterTypeOption(props.parameter, 'editor') === 'htmlEditor',
-);
+const isHtmlEditor = computed(() => getArgument('editor') === 'htmlEditor');
 const shouldShowExpressionSelector = computed(
 	() => !props.parameter.noDataExpression && props.showExpressionSelector && !props.isReadOnly,
 );
-
-const isFocusPanelFeatureEnabled = computed(() => {
-	return posthogStore.getVariant(FOCUS_PANEL_EXPERIMENT.name) === FOCUS_PANEL_EXPERIMENT.variant;
-});
-const canBeOpenedInFocusPanel = computed(
-	() =>
-		isFocusPanelFeatureEnabled.value &&
-		!props.parameter.isNodeSetting &&
-		!props.isReadOnly &&
-		!props.isContentOverridden &&
-		activeNode.value && // checking that it's inside ndv
-		(props.parameter.type === 'string' || props.parameter.type === 'json'),
-);
-
 const shouldShowOptions = computed(() => {
 	if (props.isReadOnly) {
 		return false;
@@ -87,6 +61,7 @@ const shouldShowOptions = computed(() => {
 	return false;
 });
 const selectedView = computed(() => (isValueAnExpression.value ? 'expression' : 'fixed'));
+const activeNode = computed(() => useNDVStore().activeNode);
 const hasRemoteMethod = computed(
 	() =>
 		!!props.parameter.typeOptions?.loadOptionsMethod || !!props.parameter.typeOptions?.loadOptions,
@@ -113,18 +88,13 @@ const actions = computed(() => {
 		];
 	}
 
-	const resetAction = {
-		label: resetValueLabel.value,
-		value: 'resetValue',
-		disabled: isDefault.value,
-	};
-
-	// The reset value action is not working correctly for these
-	const hasResetAction = !['codeNodeEditor', 'sqlEditor'].includes(
-		props.parameter.typeOptions?.editor ?? '',
-	);
-
-	const parameterActions = [hasResetAction ? resetAction : []].flat();
+	const parameterActions = [
+		{
+			label: resetValueLabel.value,
+			value: 'resetValue',
+			disabled: isDefault.value,
+		},
+	];
 
 	if (
 		hasRemoteMethod.value ||
@@ -154,26 +124,28 @@ const onViewSelected = (selected: string) => {
 		emit('update:modelValue', 'removeExpression');
 	}
 };
+const getArgument = (argumentName: string) => {
+	if (props.parameter.typeOptions === undefined) {
+		return undefined;
+	}
+
+	if (props.parameter.typeOptions[argumentName] === undefined) {
+		return undefined;
+	}
+
+	return props.parameter.typeOptions[argumentName];
+};
 </script>
 
 <template>
 	<div :class="$style.container" data-test-id="parameter-options-container">
 		<div v-if="loading" :class="$style.loader" data-test-id="parameter-options-loader">
 			<n8n-text v-if="loading" size="small">
-				<n8n-icon icon="refresh-cw" size="xsmall" :spin="true" />
+				<n8n-icon icon="sync-alt" size="xsmall" :spin="true" />
 				{{ loadingMessage }}
 			</n8n-text>
 		</div>
 		<div v-else :class="$style.controlsContainer">
-			<N8nTooltip v-if="canBeOpenedInFocusPanel">
-				<template #content>{{ i18n.baseText('parameterInput.focusParameter') }}</template>
-				<N8nIcon
-					size="medium"
-					:icon="'panel-right'"
-					:class="$style.focusButton"
-					@click="$emit('update:modelValue', 'focus')"
-				/>
-			</N8nTooltip>
 			<div
 				:class="{
 					[$style.noExpressionSelector]: !shouldShowExpressionSelector,
@@ -207,12 +179,9 @@ const onViewSelected = (selected: string) => {
 </template>
 
 <style lang="scss" module>
-$container-height: 22px;
-
 .container {
 	display: flex;
-	min-height: $container-height;
-	max-height: $container-height;
+	min-height: 22px;
 }
 
 .loader {
@@ -233,13 +202,6 @@ $container-height: 22px;
 
 	span {
 		padding-right: 0 !important;
-	}
-}
-
-.focusButton {
-	&:hover {
-		cursor: pointer;
-		color: var(--color-primary);
 	}
 }
 </style>

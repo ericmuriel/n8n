@@ -2,8 +2,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from '@/composables/useToast';
-import type { ITimeoutHMS, IWorkflowSettings, IWorkflowShortResponse } from '@/Interface';
-import type { WorkflowDataUpdate } from '@n8n/rest-api-client/api/workflows';
+import type {
+	ITimeoutHMS,
+	IWorkflowDataUpdate,
+	IWorkflowSettings,
+	IWorkflowShortResponse,
+} from '@/Interface';
 import Modal from '@/components/Modal.vue';
 import {
 	EnterpriseEditionFeature,
@@ -13,15 +17,15 @@ import {
 import type { WorkflowSettings } from 'n8n-workflow';
 import { deepCopy } from 'n8n-workflow';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useRootStore } from '@n8n/stores/useRootStore';
+import { useRootStore } from '@/stores/root.store';
 import { useWorkflowsEEStore } from '@/stores/workflows.ee.store';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import { createEventBus } from '@n8n/utils/event-bus';
 import { useExternalHooks } from '@/composables/useExternalHooks';
 import { useSourceControlStore } from '@/stores/sourceControl.store';
 import { ProjectTypes } from '@/types/projects.types';
-import { getResourcePermissions } from '@n8n/permissions';
-import { useI18n } from '@n8n/i18n';
+import { getResourcePermissions } from '@/permissions';
+import { useI18n } from '@/composables/useI18n';
 import { useTelemetry } from '@/composables/useTelemetry';
 
 const route = useRoute();
@@ -294,7 +298,7 @@ const convertToHMS = (num: number): ITimeoutHMS => {
 
 const saveSettings = async () => {
 	// Set that the active state should be changed
-	const data: WorkflowDataUpdate & { settings: IWorkflowSettings } = {
+	const data: IWorkflowDataUpdate & { settings: IWorkflowSettings } = {
 		settings: workflowSettings.value,
 	};
 
@@ -367,9 +371,6 @@ const saveSettings = async () => {
 	void externalHooks.run('workflowSettings.saveSettings', { oldSettings });
 	telemetry.track('User updated workflow settings', {
 		workflow_id: workflowsStore.workflowId,
-		// null and undefined values are removed from the object, but we need the keys to be there
-		time_saved: workflowSettings.value.timeSavedPerExecution ?? '',
-		error_workflow: workflowSettings.value.errorWorkflow ?? '',
 	});
 };
 
@@ -379,11 +380,7 @@ const toggleTimeout = () => {
 
 const updateTimeSavedPerExecution = (value: string) => {
 	const numValue = parseInt(value, 10);
-	workflowSettings.value.timeSavedPerExecution = isNaN(numValue)
-		? undefined
-		: numValue < 0
-			? 0
-			: numValue;
+	workflowSettings.value.timeSavedPerExecution = isNaN(numValue) ? undefined : numValue;
 };
 
 onMounted(async () => {
@@ -519,7 +516,7 @@ onMounted(async () => {
 							<template #content>
 								<div v-n8n-html="helpTexts.errorWorkflow"></div>
 							</template>
-							<n8n-icon icon="circle-help" />
+							<font-awesome-icon icon="question-circle" />
 						</N8nTooltip>
 					</el-col>
 					<el-col :span="14" class="ignore-key-press-canvas">
@@ -549,7 +546,7 @@ onMounted(async () => {
 								<template #content>
 									<div v-text="helpTexts.workflowCallerPolicy"></div>
 								</template>
-								<n8n-icon icon="circle-help" />
+								<font-awesome-icon icon="question-circle" />
 							</N8nTooltip>
 						</el-col>
 
@@ -578,7 +575,7 @@ onMounted(async () => {
 								<template #content>
 									<div v-text="helpTexts.workflowCallerIds"></div>
 								</template>
-								<n8n-icon icon="circle-help" />
+								<font-awesome-icon icon="question-circle" />
 							</N8nTooltip>
 						</el-col>
 						<el-col :span="14">
@@ -600,7 +597,7 @@ onMounted(async () => {
 							<template #content>
 								<div v-text="helpTexts.timezone"></div>
 							</template>
-							<n8n-icon icon="circle-help" />
+							<font-awesome-icon icon="question-circle" />
 						</N8nTooltip>
 					</el-col>
 					<el-col :span="14" class="ignore-key-press-canvas">
@@ -629,7 +626,7 @@ onMounted(async () => {
 							<template #content>
 								<div v-text="helpTexts.saveDataErrorExecution"></div>
 							</template>
-							<n8n-icon icon="circle-help" />
+							<font-awesome-icon icon="question-circle" />
 						</N8nTooltip>
 					</el-col>
 					<el-col :span="14" class="ignore-key-press-canvas">
@@ -658,7 +655,7 @@ onMounted(async () => {
 							<template #content>
 								<div v-text="helpTexts.saveDataSuccessExecution"></div>
 							</template>
-							<n8n-icon icon="circle-help" />
+							<font-awesome-icon icon="question-circle" />
 						</N8nTooltip>
 					</el-col>
 					<el-col :span="14" class="ignore-key-press-canvas">
@@ -687,7 +684,7 @@ onMounted(async () => {
 							<template #content>
 								<div v-text="helpTexts.saveManualExecutions"></div>
 							</template>
-							<n8n-icon icon="circle-help" />
+							<font-awesome-icon icon="question-circle" />
 						</N8nTooltip>
 					</el-col>
 					<el-col :span="14" class="ignore-key-press-canvas">
@@ -701,7 +698,7 @@ onMounted(async () => {
 						>
 							<N8nOption
 								v-for="option of saveManualOptions"
-								:key="`${option.key}`"
+								:key="option.key"
 								:label="option.value"
 								:value="option.key"
 							>
@@ -716,7 +713,7 @@ onMounted(async () => {
 							<template #content>
 								<div v-text="helpTexts.saveExecutionProgress"></div>
 							</template>
-							<n8n-icon icon="circle-help" />
+							<font-awesome-icon icon="question-circle" />
 						</N8nTooltip>
 					</el-col>
 					<el-col :span="14" class="ignore-key-press-canvas">
@@ -730,7 +727,7 @@ onMounted(async () => {
 						>
 							<N8nOption
 								v-for="option of saveExecutionProgressOptions"
-								:key="`${option.key}`"
+								:key="option.key"
 								:label="option.value"
 								:value="option.key"
 							>
@@ -745,7 +742,7 @@ onMounted(async () => {
 							<template #content>
 								<div v-text="helpTexts.executionTimeoutToggle"></div>
 							</template>
-							<n8n-icon icon="circle-help" />
+							<font-awesome-icon icon="question-circle" />
 						</N8nTooltip>
 					</el-col>
 					<el-col :span="14">
@@ -772,7 +769,7 @@ onMounted(async () => {
 								<template #content>
 									<div v-text="helpTexts.executionTimeout"></div>
 								</template>
-								<n8n-icon icon="circle-help" />
+								<font-awesome-icon icon="question-circle" />
 							</N8nTooltip>
 						</el-col>
 						<el-col :span="4">
@@ -817,7 +814,7 @@ onMounted(async () => {
 								<template #content>
 									{{ i18n.baseText('workflowSettings.timeSavedPerExecution.tooltip') }}
 								</template>
-								<n8n-icon icon="circle-help" />
+								<font-awesome-icon icon="question-circle" />
 							</N8nTooltip>
 						</label>
 					</el-col>
@@ -829,7 +826,6 @@ onMounted(async () => {
 								:disabled="readOnlyEnv || !workflowPermissions.update"
 								data-test-id="workflow-settings-time-saved-per-execution"
 								type="number"
-								min="0"
 								@update:model-value="updateTimeSavedPerExecution"
 							/>
 							<span>{{ i18n.baseText('workflowSettings.timeSavedPerExecution.hint') }}</span>

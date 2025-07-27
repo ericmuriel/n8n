@@ -36,14 +36,6 @@ const emit = defineEmits<{
 function valueChanged(parameterData: IUpdateInformation) {
 	emit('update', parameterData);
 }
-
-function onExtraPropValueRemove(name: string) {
-	delete parameterOverride.value.extraPropValues[name];
-	valueChanged({
-		name: props.path,
-		value: buildValueFromOverride(parameterOverride.value, props, true),
-	});
-}
 </script>
 
 <template>
@@ -52,7 +44,6 @@ function onExtraPropValueRemove(name: string) {
 		class="mt-2xs"
 		:inputs="inputs"
 		:disabled="isReadOnly"
-		@remove-item="onExtraPropValueRemove"
 	>
 		<template #displayItem="{ name, tooltip, initialValue, type, typeOptions }">
 			<ParameterInputFull

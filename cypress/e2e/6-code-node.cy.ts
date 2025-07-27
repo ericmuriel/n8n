@@ -64,7 +64,7 @@ describe('Code node', () => {
 				.type('{selectall}')
 				.paste(`$input.itemMatching()
 $input.item
-$('When clicking ‘Execute workflow’').item
+$('When clicking ‘Test workflow’').item
 $input.first(1)
 
 for (const item of $input.all()) {
@@ -180,11 +180,7 @@ return []
 				{ code: 400, message: 'Code generation failed due to an unknown reason' },
 				{ code: 413, message: 'Your workflow data is too large for AI to process' },
 				{ code: 429, message: "We've hit our rate limit with our AI partner" },
-				{
-					code: 500,
-					message:
-						'Code generation failed with error: Request failed with status code 500. Try again in a few minutes',
-				},
+				{ code: 500, message: 'Code generation failed due to an unknown reason' },
 			];
 
 			handledCodes.forEach(({ code, message }) => {

@@ -1,5 +1,7 @@
-import { LicenseMetricsRepository, WorkflowRepository } from '@n8n/db';
 import { Service } from '@n8n/di';
+
+import { LicenseMetricsRepository } from '@/databases/repositories/license-metrics.repository';
+import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
 
 @Service()
 export class LicenseMetricsService {
@@ -16,14 +18,10 @@ export class LicenseMetricsService {
 			totalUsers,
 			totalCredentials,
 			productionExecutions,
-			productionRootExecutions,
 			manualExecutions,
 		} = await this.licenseMetricsRepository.getLicenseRenewalMetrics();
 
-		const [activeTriggerCount, workflowsWithEvaluationsCount] = await Promise.all([
-			this.workflowRepository.getActiveTriggerCount(),
-			this.workflowRepository.getWorkflowsWithEvaluationCount(),
-		]);
+		const activeTriggerCount = await this.workflowRepository.getActiveTriggerCount();
 
 		return [
 			{ name: 'activeWorkflows', value: activeWorkflows },
@@ -32,10 +30,8 @@ export class LicenseMetricsService {
 			{ name: 'totalUsers', value: totalUsers },
 			{ name: 'totalCredentials', value: totalCredentials },
 			{ name: 'productionExecutions', value: productionExecutions },
-			{ name: 'productionRootExecutions', value: productionRootExecutions },
 			{ name: 'manualExecutions', value: manualExecutions },
 			{ name: 'activeWorkflowTriggers', value: activeTriggerCount },
-			{ name: 'evaluations', value: workflowsWithEvaluationsCount },
 		];
 	}
 

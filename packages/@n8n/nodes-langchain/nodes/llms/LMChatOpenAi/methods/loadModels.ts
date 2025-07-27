@@ -1,8 +1,6 @@
 import type { ILoadOptionsFunctions, INodeListSearchResult } from 'n8n-workflow';
 import OpenAI from 'openai';
 
-import { getProxyAgent } from '@utils/httpProxyAgent';
-
 export async function searchModels(
 	this: ILoadOptionsFunctions,
 	filter?: string,
@@ -13,42 +11,31 @@ export async function searchModels(
 		(credentials.url as string) ||
 		'https://api.openai.com/v1';
 
-	const openai = new OpenAI({
-		baseURL,
-		apiKey: credentials.apiKey as string,
-		fetchOptions: {
-			dispatcher: getProxyAgent(baseURL),
-		},
-	});
+	const openai = new OpenAI({ baseURL, apiKey: credentials.apiKey as string });
 	const { data: models = [] } = await openai.models.list();
 
 	const filteredModels = models.filter((model: { id: string }) => {
 		const url = baseURL && new URL(baseURL);
-		const isCustomAPI = url && url.hostname !== 'api.openai.com';
-		// Filter out TTS, embedding, image generation, and other models
-		const isInvalidModel =
-			!isCustomAPI &&
-			(model.id.startsWith('babbage') ||
-				model.id.startsWith('davinci') ||
-				model.id.startsWith('computer-use') ||
-				model.id.startsWith('dall-e') ||
-				model.id.startsWith('text-embedding') ||
-				model.id.startsWith('tts') ||
-				model.id.startsWith('whisper') ||
-				model.id.startsWith('omni-moderation') ||
-				(model.id.startsWith('gpt-') && model.id.includes('instruct')));
+		const isValidModel =
+			(url && url.hostname !== 'api.openai.com') ||
+			model.id.startsWith('ft:') ||
+			model.id.startsWith('o1') ||
+			model.id.startsWith('o3') ||
+			(model.id.startsWith('gpt-') && !model.id.includes('instruct'));
 
-		if (!filter) return !isInvalidModel;
+		if (!filter) return isValidModel;
 
-		return !isInvalidModel && model.id.toLowerCase().includes(filter.toLowerCase());
+		return isValidModel && model.id.toLowerCase().includes(filter.toLowerCase());
 	});
 
 	filteredModels.sort((a, b) => a.id.localeCompare(b.id));
 
-	return {
+	const results = {
 		results: filteredModels.map((model: { id: string }) => ({
 			name: model.id,
 			value: model.id,
 		})),
 	};
+
+	return results;
 }

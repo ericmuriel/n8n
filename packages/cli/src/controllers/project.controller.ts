@@ -1,6 +1,12 @@
 import { CreateProjectDto, DeleteProjectDto, UpdateProjectDto } from '@n8n/api-types';
-import type { Project } from '@n8n/db';
-import { AuthenticatedRequest, ProjectRepository } from '@n8n/db';
+import { combineScopes } from '@n8n/permissions';
+import type { Scope } from '@n8n/permissions';
+// eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
+import { In, Not } from '@n8n/typeorm';
+import { Response } from 'express';
+
+import type { Project } from '@/databases/entities/project';
+import { ProjectRepository } from '@/databases/repositories/project.repository';
 import {
 	Get,
 	Post,
@@ -13,31 +19,26 @@ import {
 	Body,
 	Param,
 	Query,
-} from '@n8n/decorators';
-import { combineScopes, getRoleScopes, hasGlobalScope } from '@n8n/permissions';
-import type { Scope } from '@n8n/permissions';
-// eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
-import { In, Not } from '@n8n/typeorm';
-import { Response } from 'express';
-
+} from '@/decorators';
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
 import { NotFoundError } from '@/errors/response-errors/not-found.error';
 import { EventService } from '@/events/event.service';
 import type { ProjectRequest } from '@/requests';
+import { AuthenticatedRequest } from '@/requests';
 import {
 	ProjectService,
 	TeamProjectOverQuotaError,
 	UnlicensedProjectRoleError,
 } from '@/services/project.service.ee';
-import { UserManagementMailer } from '@/user-management/email';
+import { RoleService } from '@/services/role.service';
 
 @RestController('/projects')
 export class ProjectController {
 	constructor(
 		private readonly projectsService: ProjectService,
+		private readonly roleService: RoleService,
 		private readonly projectRepository: ProjectRepository,
 		private readonly eventService: EventService,
-		private readonly userManagementMailer: UserManagementMailer,
 	) {}
 
 	@Get('/')
@@ -68,8 +69,8 @@ export class ProjectController {
 				role: 'project:admin',
 				scopes: [
 					...combineScopes({
-						global: getRoleScopes(req.user.role),
-						project: getRoleScopes('project:admin'),
+						global: this.roleService.getRoleScopes(req.user.role),
+						project: this.roleService.getRoleScopes('project:admin'),
 					}),
 				],
 			};
@@ -87,7 +88,7 @@ export class ProjectController {
 		_res: Response,
 	): Promise<ProjectRequest.GetMyProjectsResponse> {
 		const relations = await this.projectsService.getProjectRelationsForUser(req.user);
-		const otherTeamProject = hasGlobalScope(req.user, 'project:read')
+		const otherTeamProject = req.user.hasGlobalScope('project:read')
 			? await this.projectRepository.findBy({
 					type: 'team',
 					id: Not(In(relations.map((pr) => pr.projectId))),
@@ -105,8 +106,8 @@ export class ProjectController {
 			if (result.scopes) {
 				result.scopes.push(
 					...combineScopes({
-						global: getRoleScopes(req.user.role),
-						project: getRoleScopes(pr.role),
+						global: this.roleService.getRoleScopes(req.user.role),
+						project: this.roleService.getRoleScopes(pr.role),
 					}),
 				);
 			}
@@ -127,7 +128,9 @@ export class ProjectController {
 			);
 
 			if (result.scopes) {
-				result.scopes.push(...combineScopes({ global: getRoleScopes(req.user.role) }));
+				result.scopes.push(
+					...combineScopes({ global: this.roleService.getRoleScopes(req.user.role) }),
+				);
 			}
 
 			results.push(result);
@@ -151,8 +154,8 @@ export class ProjectController {
 		}
 		const scopes: Scope[] = [
 			...combineScopes({
-				global: getRoleScopes(req.user.role),
-				project: getRoleScopes('project:personalOwner'),
+				global: this.roleService.getRoleScopes(req.user.role),
+				project: this.roleService.getRoleScopes('project:personalOwner'),
 			}),
 		];
 		return {
@@ -168,7 +171,7 @@ export class ProjectController {
 		_res: Response,
 		@Param('projectId') projectId: string,
 	): Promise<ProjectRequest.ProjectWithRelations> {
-		const [{ id, name, icon, type, description }, relations] = await Promise.all([
+		const [{ id, name, icon, type }, relations] = await Promise.all([
 			this.projectsService.getProject(projectId),
 			this.projectsService.getProjectRelations(projectId),
 		]);
@@ -179,7 +182,6 @@ export class ProjectController {
 			name,
 			icon,
 			type,
-			description,
 			relations: relations.map((r) => ({
 				id: r.user.id,
 				email: r.user.email,
@@ -189,8 +191,8 @@ export class ProjectController {
 			})),
 			scopes: [
 				...combineScopes({
-					global: getRoleScopes(req.user.role),
-					...(myRelation ? { project: getRoleScopes(myRelation.role) } : {}),
+					global: this.roleService.getRoleScopes(req.user.role),
+					...(myRelation ? { project: this.roleService.getRoleScopes(myRelation.role) } : {}),
 				}),
 			],
 		};
@@ -204,23 +206,13 @@ export class ProjectController {
 		@Body payload: UpdateProjectDto,
 		@Param('projectId') projectId: string,
 	) {
-		const { name, icon, relations, description } = payload;
-		if (name || icon || description) {
-			await this.projectsService.updateProject(projectId, { name, icon, description });
+		const { name, icon, relations } = payload;
+		if (name || icon) {
+			await this.projectsService.updateProject(projectId, { name, icon });
 		}
 		if (relations) {
 			try {
-				const { project, newRelations } = await this.projectsService.syncProjectRelations(
-					projectId,
-					relations,
-				);
-
-				// Send email notifications to new sharees
-				await this.userManagementMailer.notifyProjectShared({
-					sharer: req.user,
-					newSharees: newRelations,
-					project: { id: project.id, name: project.name },
-				});
+				await this.projectsService.syncProjectRelations(projectId, relations);
 			} catch (e) {
 				if (e instanceof UnlicensedProjectRoleError) {
 					throw new BadRequestError(e.message);

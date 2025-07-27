@@ -11,13 +11,7 @@
                     "type": "string"
                 }
             }
-        },
-        "Id": {
-            "type": "string"
-        },
-        "StageName": {
-            "type": "string"
         }
     },
-    "version": 5
+    "version": 1
 }

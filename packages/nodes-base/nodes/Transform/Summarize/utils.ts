@@ -56,7 +56,7 @@ function isEmpty<T>(value: T) {
 }
 
 function normalizeFieldName(fieldName: string) {
-	return fieldName.replace(/[\]\["]/g, '').replace(/[ .]/g, '_');
+	return fieldName.replace(/[\]\["]/g, '').replace(/[ .]/g, '');
 }
 
 export const fieldValueGetter = (disableDotNotation?: boolean) => {
@@ -225,22 +225,22 @@ export function aggregateAndSplitData({
 
 	const groupedItems = new Map<unknown, IDataObject[]>();
 	for (const item of inputItems) {
-		let splitValue = getValue(item, firstSplitKey);
+		let key = getValue(item, firstSplitKey);
 
-		if (splitValue && typeof splitValue === 'object') {
-			splitValue = JSON.stringify(splitValue);
+		if (key && typeof key === 'object') {
+			key = JSON.stringify(key);
 		}
 
 		if (convertKeysToString) {
-			splitValue = String(splitValue);
+			key = normalizeFieldName(String(key));
 		}
 
-		if (options.skipEmptySplitFields && typeof splitValue !== 'number' && !splitValue) {
+		if (options.skipEmptySplitFields && typeof key !== 'number' && !key) {
 			continue;
 		}
 
-		const group = groupedItems.get(splitValue) ?? [];
-		groupedItems.set(splitValue, group.concat([item]));
+		const group = groupedItems.get(key) ?? [];
+		groupedItems.set(key, group.concat([item]));
 	}
 
 	const splits = new Map(
@@ -252,7 +252,6 @@ export function aggregateAndSplitData({
 				fieldsToSummarize,
 				options,
 				getValue,
-				convertKeysToString,
 			}),
 		]),
 	);

@@ -1,5 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
+
+import { testWorkflows } from '@test/nodes/Helpers';
 
 jest.mock('jsonwebtoken', () => ({
 	sign: jest.fn().mockReturnValue('signature'),
@@ -36,7 +37,6 @@ describe('Test Google BigQuery V2, executeQuery', () => {
 		.get('/v2/projects/test-project/queries/job_123?maxResults=1000&timeoutMs=10000')
 		.reply(200, { rows: [], schema: {} });
 
-	new NodeTestHarness().setupTests({
-		workflowFiles: ['executeQuery.workflow.json'],
-	});
+	const workflows = ['nodes/Google/BigQuery/test/v2/node/executeQuery.workflow.json'];
+	testWorkflows(workflows);
 });

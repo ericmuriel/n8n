@@ -4,12 +4,13 @@ import { ref } from 'vue';
 import { useI18n } from '../../composables/useI18n';
 import AssistantIcon from '../AskAssistantIcon/AssistantIcon.vue';
 import AssistantText from '../AskAssistantText/AssistantText.vue';
+import BetaTag from '../BetaTag/BetaTag.vue';
 
 const { t } = useI18n();
 
 const hovering = ref(false);
 
-const props = defineProps<{ unreadCount?: number; type?: 'assistant' | 'builder' }>();
+const props = defineProps<{ unreadCount?: number }>();
 
 const emit = defineEmits<{
 	click: [e: MouseEvent];
@@ -39,13 +40,10 @@ function onMouseLeave() {
 		<AssistantIcon v-else size="large" :theme="hovering ? 'blank' : 'default'" />
 		<div v-show="hovering" :class="$style.text">
 			<div>
-				<AssistantText
-					:text="
-						type === 'builder'
-							? t('assistantChat.builder.name')
-							: t('askAssistantButton.askAssistant')
-					"
-				/>
+				<AssistantText :text="t('askAssistantButton.askAssistant')" />
+			</div>
+			<div>
+				<BetaTag />
 			</div>
 		</div>
 	</button>
@@ -88,6 +86,7 @@ function onMouseLeave() {
 
 .text {
 	position: absolute;
+	top: -1px;
 	display: flex;
 	flex-direction: column;
 	align-items: end;

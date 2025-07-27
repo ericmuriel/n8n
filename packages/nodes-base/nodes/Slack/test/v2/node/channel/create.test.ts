@@ -1,5 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
+
+import { testWorkflows } from '@test/nodes/Helpers';
 
 const API_RESPONSE = {
 	ok: true,
@@ -47,7 +48,6 @@ const API_RESPONSE = {
 describe('Test SlackV2, channel => create', () => {
 	nock('https://slack.com').post('/api/conversations.create').reply(200, API_RESPONSE);
 
-	new NodeTestHarness().setupTests({
-		workflowFiles: ['create.workflow.json'],
-	});
+	const workflows = ['nodes/Slack/test/v2/node/channel/create.workflow.json'];
+	testWorkflows(workflows);
 });

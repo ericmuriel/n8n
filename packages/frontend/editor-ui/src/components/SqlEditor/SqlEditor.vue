@@ -36,7 +36,6 @@ import {
 	expressionCloseBrackets,
 	expressionCloseBracketsConfig,
 } from '@/plugins/codemirror/expressionCloseBrackets';
-import type { TargetNodeParameterContext } from '@/Interface';
 
 const SQL_DIALECTS = {
 	StandardSQL,
@@ -55,7 +54,6 @@ type Props = {
 	rows?: number;
 	isReadOnly?: boolean;
 	fullscreen?: boolean;
-	targetNodeParameterContext?: TargetNodeParameterContext;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -63,7 +61,6 @@ const props = withDefaults(defineProps<Props>(), {
 	rows: 4,
 	isReadOnly: false,
 	fullscreen: false,
-	targetNodeParameterContext: undefined,
 });
 
 const emit = defineEmits<{
@@ -115,28 +112,36 @@ const extensions = computed(() => {
 	}
 	return baseExtensions;
 });
+const editorValue = ref(props.modelValue);
 const {
 	editor,
 	segments: { all: segments },
 	readEditorValue,
 	hasFocus: editorHasFocus,
-	focus,
+	isDirty,
 } = useExpressionEditor({
 	editorRef: sqlEditor,
-	editorValue: () => props.modelValue,
+	editorValue,
 	extensions,
 	skipSegments: ['Statement', 'CompositeIdentifier', 'Parens', 'Brackets'],
 	isReadOnly: props.isReadOnly,
-	targetNodeParameterContext: props.targetNodeParameterContext,
-	onChange: () => {
-		emit('update:model-value', readEditorValue());
-	},
 });
 
-watch(editorHasFocus, (hasFocus) => {
-	if (hasFocus) {
+watch(
+	() => props.modelValue,
+	(newValue) => {
+		editorValue.value = newValue;
+	},
+);
+
+watch(editorHasFocus, (focus) => {
+	if (focus) {
 		isFocused.value = true;
 	}
+});
+
+watch(segments, () => {
+	emit('update:model-value', readEditorValue());
 });
 
 onMounted(() => {
@@ -148,6 +153,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+	if (isDirty.value) emit('update:model-value', readEditorValue());
 	codeNodeEditorEventBus.off('highlightLine', highlightLine);
 });
 
@@ -196,10 +202,6 @@ async function onDrop(value: string, event: MouseEvent) {
 
 	await dropInExpressionEditor(toRaw(editor.value), event, value);
 }
-
-defineExpose({
-	focus,
-});
 </script>
 
 <template>

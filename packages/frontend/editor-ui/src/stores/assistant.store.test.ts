@@ -7,14 +7,13 @@ import {
 	MIN_CHAT_WIDTH,
 	useAssistantStore,
 } from '@/stores/assistant.store';
-import { useWorkflowsStore } from './workflows.store';
 import type { ChatRequest } from '@/types/assistant.types';
 import { usePostHog } from './posthog.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { defaultSettings } from '../__tests__/defaults';
-import merge from 'lodash/merge';
+import { merge } from 'lodash-es';
 import { DEFAULT_POSTHOG_SETTINGS } from './posthog.test';
-import { VIEWS } from '@/constants';
+import { AI_ASSISTANT_EXPERIMENT, VIEWS } from '@/constants';
 import { reactive } from 'vue';
 import * as chatAPI from '@/api/ai';
 import * as telemetryModule from '@/composables/useTelemetry';
@@ -44,12 +43,11 @@ const setAssistantEnabled = (enabled: boolean) => {
 };
 
 let currentRouteName = ENABLED_VIEWS[0];
-let currentRouteParams = {};
 vi.mock('vue-router', () => ({
 	useRoute: vi.fn(() =>
 		reactive({
 			path: '/',
-			params: currentRouteParams,
+			params: {},
 			name: currentRouteName,
 		}),
 	),
@@ -57,10 +55,15 @@ vi.mock('vue-router', () => ({
 	RouterLink: vi.fn(),
 }));
 
+const mockPostHogVariant = (variant: 'variant' | 'control') => {
+	posthogStore.overrides = {
+		[AI_ASSISTANT_EXPERIMENT.name]: variant,
+	};
+};
+
 describe('AI Assistant store', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		currentRouteParams = {};
 		setActivePinia(createPinia());
 		settingsStore = useSettingsStore();
 		settingsStore.setSettings(
@@ -278,9 +281,20 @@ describe('AI Assistant store', () => {
 		expect(assistantStore.currentSessionId).toBeUndefined();
 	});
 
+	it('should not show assistant for control experiment group', () => {
+		const assistantStore = useAssistantStore();
+
+		mockPostHogVariant('control');
+		setAssistantEnabled(true);
+		expect(assistantStore.isAssistantEnabled).toBe(false);
+		expect(assistantStore.canShowAssistant).toBe(false);
+		expect(assistantStore.canShowAssistantButtonsOnCanvas).toBe(false);
+	});
+
 	it('should not show assistant if disabled in settings', () => {
 		const assistantStore = useAssistantStore();
 
+		mockPostHogVariant('variant');
 		setAssistantEnabled(false);
 		expect(assistantStore.isAssistantEnabled).toBe(false);
 		expect(assistantStore.canShowAssistant).toBe(false);
@@ -291,6 +305,7 @@ describe('AI Assistant store', () => {
 		const assistantStore = useAssistantStore();
 
 		setAssistantEnabled(true);
+		mockPostHogVariant('variant');
 		expect(assistantStore.isAssistantEnabled).toBe(true);
 		expect(assistantStore.canShowAssistant).toBe(true);
 		expect(assistantStore.canShowAssistantButtonsOnCanvas).toBe(true);
@@ -301,6 +316,7 @@ describe('AI Assistant store', () => {
 		const assistantStore = useAssistantStore();
 
 		setAssistantEnabled(true);
+		mockPostHogVariant('variant');
 		expect(assistantStore.isAssistantEnabled).toBe(true);
 		expect(assistantStore.canShowAssistant).toBe(false);
 		expect(assistantStore.canShowAssistantButtonsOnCanvas).toBe(false);
@@ -308,55 +324,14 @@ describe('AI Assistant store', () => {
 
 	[VIEWS.PROJECTS_CREDENTIALS, VIEWS.TEMPLATE_SETUP, VIEWS.CREDENTIALS].forEach((view) => {
 		it(`should show assistant if on ${view} page`, () => {
-			currentRouteName = view;
+			currentRouteName = VIEWS.PROJECTS_CREDENTIALS;
 			const assistantStore = useAssistantStore();
 
 			setAssistantEnabled(true);
+			mockPostHogVariant('variant');
 			expect(assistantStore.isAssistantEnabled).toBe(true);
 			expect(assistantStore.canShowAssistant).toBe(true);
 			expect(assistantStore.canShowAssistantButtonsOnCanvas).toBe(false);
-		});
-	});
-
-	[
-		{ view: VIEWS.WORKFLOW, nodeId: 'nodeId' },
-		{ view: VIEWS.NEW_WORKFLOW },
-		{ view: VIEWS.EXECUTION_DEBUG },
-	].forEach(({ view, nodeId }) => {
-		it(`should show ai assistant floating button if on ${view} page`, () => {
-			currentRouteName = view;
-			currentRouteParams = nodeId ? { nodeId } : {};
-
-			const workflowsStore = useWorkflowsStore();
-			workflowsStore.activeNode = () => ({
-				id: 'test-node',
-				name: 'Test Node',
-				type: 'test',
-				typeVersion: 1,
-				position: [0, 0],
-				parameters: {},
-			});
-
-			const assistantStore = useAssistantStore();
-
-			setAssistantEnabled(true);
-			expect(assistantStore.canShowAssistantButtonsOnCanvas).toBe(true);
-			expect(assistantStore.hideAssistantFloatingButton).toBe(false);
-		});
-	});
-
-	[{ view: VIEWS.WORKFLOW }, { view: VIEWS.NEW_WORKFLOW }].forEach(({ view }) => {
-		it(`should hide ai assistant floating button if on canvas of ${view} page`, () => {
-			currentRouteName = view;
-
-			const workflowsStore = useWorkflowsStore();
-			workflowsStore.activeNode = () => null;
-
-			const assistantStore = useAssistantStore();
-
-			setAssistantEnabled(true);
-			expect(assistantStore.canShowAssistantButtonsOnCanvas).toBe(true);
-			expect(assistantStore.hideAssistantFloatingButton).toBe(true);
 		});
 	});
 
@@ -416,12 +391,18 @@ describe('AI Assistant store', () => {
 			source: 'error',
 			has_existing_session: true,
 		});
-		expect(track).toHaveBeenCalledWith('Assistant session started', {
-			chat_session_id: 'test',
-			node_type: 'n8n-nodes-base.stopAndError',
-			task: 'error',
-			credential_type: undefined,
-		});
+		expect(track).toHaveBeenCalledWith(
+			'Assistant session started',
+			{
+				chat_session_id: 'test',
+				node_type: 'n8n-nodes-base.stopAndError',
+				task: 'error',
+				credential_type: undefined,
+			},
+			{
+				withPostHog: true,
+			},
+		);
 
 		expect(track).toHaveBeenCalledWith('User opened assistant', {
 			chat_session_id: 'test',

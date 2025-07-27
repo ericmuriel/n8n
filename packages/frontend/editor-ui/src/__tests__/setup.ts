@@ -55,7 +55,7 @@ global.IntersectionObserver = IntersectionObserver;
 // Mocks for useDeviceSupport
 Object.defineProperty(window, 'matchMedia', {
 	writable: true,
-	value: vi.fn((query) => ({
+	value: vi.fn().mockImplementation((query) => ({
 		matches: true,
 		media: query,
 		onchange: null,
@@ -106,14 +106,4 @@ Object.defineProperty(window, 'Worker', {
 Object.defineProperty(window, 'DataTransfer', {
 	writable: true,
 	value: DataTransfer,
-});
-
-Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
-	writable: true,
-	value: vi.fn(),
-});
-
-Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
-	writable: true,
-	value: vi.fn(),
 });

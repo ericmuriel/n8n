@@ -1,8 +1,9 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
-import { NodeConnectionTypes, type WorkflowTestData } from 'n8n-workflow';
+/* eslint-disable @typescript-eslint/no-loop-func */
+import { NodeConnectionTypes, type IDataObject, type WorkflowTestData } from 'n8n-workflow';
+
+import { executeWorkflow } from '@test/nodes/ExecuteWorkflow';
 
 describe('Execute Stop and Error Node', () => {
-	const testHarness = new NodeTestHarness();
 	const tests: WorkflowTestData[] = [
 		{
 			description: 'should run stopAndError node',
@@ -31,7 +32,7 @@ describe('Execute Stop and Error Node', () => {
 						},
 						{
 							parameters: {
-								errorMessage: 'error message from node 0',
+								errorMessage: 'error message from node',
 							},
 							id: '196ca8fe-994d-46aa-a0ed-bd9beeaa490e',
 							name: 'Stop and Error',
@@ -62,18 +63,35 @@ describe('Execute Stop and Error Node', () => {
 				},
 			},
 			output: {
-				nodeExecutionOrder: [
-					'When clicking "Execute Workflow"',
-					'Stop and Error1',
-					'Stop and Error',
-				],
+				nodeExecutionOrder: ['Start'],
 				nodeData: {},
-				error: 'error message from node 0',
 			},
 		},
 	];
 
 	for (const testData of tests) {
-		testHarness.setupTest(testData);
+		test(testData.description, async () => {
+			const { result } = await executeWorkflow(testData);
+
+			expect(result.finished).toBeUndefined();
+
+			const stopAndErrorRunData = result.data.resultData.runData['Stop and Error'];
+			const stopAndErrorMessage = (
+				(stopAndErrorRunData as unknown as IDataObject[])[0].error as IDataObject
+			).message;
+
+			expect(stopAndErrorMessage).toEqual('error message from node');
+
+			const stopAndError1RunData = result.data.resultData.runData['Stop and Error1'];
+			const stopAndError1Object = (
+				(stopAndError1RunData as unknown as IDataObject[])[0].error as IDataObject
+			).errorResponse;
+
+			expect(stopAndError1Object).toEqual({
+				code: 404,
+				message: 'error object from node',
+				name: 'User-thrown error',
+			});
+		});
 	}
 });

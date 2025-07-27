@@ -6,7 +6,7 @@ export type Collaborator = {
 	lastSeen: Iso8601DateTimeString;
 };
 
-export type CollaboratorsChanged = {
+type CollaboratorsChanged = {
 	type: 'collaboratorsChanged';
 	data: {
 		workflowId: string;

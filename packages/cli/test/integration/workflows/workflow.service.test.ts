@@ -1,18 +1,22 @@
-import { createWorkflow, testDb, mockInstance } from '@n8n/backend-test-utils';
-import { SharedWorkflowRepository, WorkflowRepository } from '@n8n/db';
 import { Container } from '@n8n/di';
 import { mock } from 'jest-mock-extended';
 
 import { ActiveWorkflowManager } from '@/active-workflow-manager';
+import { SharedWorkflowRepository } from '@/databases/repositories/shared-workflow.repository';
+import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
 import { MessageEventBus } from '@/eventbus/message-event-bus/message-event-bus';
+import { OrchestrationService } from '@/services/orchestration.service';
 import { Telemetry } from '@/telemetry';
-import { WorkflowFinderService } from '@/workflows/workflow-finder.service';
 import { WorkflowService } from '@/workflows/workflow.service';
 
+import { mockInstance } from '../../shared/mocking';
 import { createOwner } from '../shared/db/users';
+import { createWorkflow } from '../shared/db/workflows';
+import * as testDb from '../shared/test-db';
 
 let workflowService: WorkflowService;
 const activeWorkflowManager = mockInstance(ActiveWorkflowManager);
+const orchestrationService = mockInstance(OrchestrationService);
 mockInstance(MessageEventBus);
 mockInstance(Telemetry);
 
@@ -28,6 +32,7 @@ beforeAll(async () => {
 		mock(),
 		mock(),
 		mock(),
+		orchestrationService,
 		mock(),
 		activeWorkflowManager,
 		mock(),
@@ -37,12 +42,11 @@ beforeAll(async () => {
 		mock(),
 		mock(),
 		mock(),
-		Container.get(WorkflowFinderService),
 	);
 });
 
 afterEach(async () => {
-	await testDb.truncate(['WorkflowEntity']);
+	await testDb.truncate(['Workflow']);
 	jest.restoreAllMocks();
 });
 

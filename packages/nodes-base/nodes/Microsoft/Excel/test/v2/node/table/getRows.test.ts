@@ -1,7 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
 
-import { credentials } from '../../../credentials';
+import { testWorkflows } from '@test/nodes/Helpers';
 
 describe('Test MicrosoftExcelV2, table => getRows', () => {
 	nock('https://graph.microsoft.com/v1.0/me')
@@ -30,8 +29,6 @@ describe('Test MicrosoftExcelV2, table => getRows', () => {
 		)
 		.reply(200, { value: [] });
 
-	new NodeTestHarness().setupTests({
-		credentials,
-		workflowFiles: ['getRows.workflow.json'],
-	});
+	const workflows = ['nodes/Microsoft/Excel/test/v2/node/table/getRows.workflow.json'];
+	testWorkflows(workflows);
 });

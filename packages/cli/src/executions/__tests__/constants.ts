@@ -9,7 +9,7 @@ export const OOM_WORKFLOW: Partial<IWorkflowBase> = {
 		{
 			parameters: {},
 			id: '48ce17fe-9651-42ae-910c-48602a00f0bb',
-			name: 'When clicking "Execute workflow"',
+			name: 'When clicking "Test workflow"',
 			type: 'n8n-nodes-base.manualTrigger',
 			typeVersion: 1,
 			position: [640, 260],
@@ -27,7 +27,7 @@ export const OOM_WORKFLOW: Partial<IWorkflowBase> = {
 		},
 	],
 	connections: {
-		'When clicking "Execute workflow"': {
+		'When clicking "Test workflow"': {
 			main: [
 				[
 					{
@@ -49,7 +49,7 @@ export const IN_PROGRESS_EXECUTION_DATA = {
 	startData: {},
 	resultData: {
 		runData: {
-			'When clicking "Execute workflow"': [
+			'When clicking "Test workflow"': [
 				{
 					hints: [],
 					startTime: 1716138610153,
@@ -71,7 +71,7 @@ export const IN_PROGRESS_EXECUTION_DATA = {
 				},
 			],
 		},
-		lastNodeExecuted: 'When clicking "Execute workflow"',
+		lastNodeExecuted: 'When clicking "Test workflow"',
 	},
 	executionData: {
 		contextData: {},
@@ -103,7 +103,7 @@ export const IN_PROGRESS_EXECUTION_DATA = {
 				source: {
 					main: [
 						{
-							previousNode: 'When clicking "Execute workflow"',
+							previousNode: 'When clicking "Test workflow"',
 						},
 					],
 				},

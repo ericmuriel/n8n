@@ -1,7 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
 
-import { credentials } from '../../__tests__/credentials';
+import { getWorkflowFilenames, testWorkflows } from '@test/nodes/Helpers';
 
 const responseLabels = [
 	{
@@ -287,6 +286,7 @@ const responseLabels = [
 
 describe('Test AWS Rekogntion Node', () => {
 	describe('Image Labels Recognition', () => {
+		const workflows = getWorkflowFilenames(__dirname);
 		const baseUrl = 'https://rekognition.eu-central-1.amazonaws.com';
 		let mock: nock.Scope;
 
@@ -298,6 +298,6 @@ describe('Test AWS Rekogntion Node', () => {
 			mock.post('/').reply(200, responseLabels);
 		});
 
-		new NodeTestHarness().setupTests({ credentials });
+		testWorkflows(workflows);
 	});
 });

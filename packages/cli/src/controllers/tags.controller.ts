@@ -1,5 +1,6 @@
 import { CreateOrUpdateTagRequestDto, RetrieveTagQueryDto } from '@n8n/api-types';
-import { AuthenticatedRequest } from '@n8n/db';
+import { Response } from 'express';
+
 import {
 	Delete,
 	Get,
@@ -10,9 +11,8 @@ import {
 	Body,
 	Param,
 	Query,
-} from '@n8n/decorators';
-import { Response } from 'express';
-
+} from '@/decorators';
+import { AuthenticatedRequest } from '@/requests';
 import { TagService } from '@/services/tag.service';
 
 @RestController('/tags')

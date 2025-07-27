@@ -1,21 +1,23 @@
 <script lang="ts" setup>
-import { useI18n } from '@n8n/i18n';
+import { computed } from 'vue';
+import { Line } from 'vue-chartjs';
+import { type ScriptableContext, type ChartData, Filler } from 'chart.js';
+import dateformat from 'dateformat';
+import type { InsightsByTime, InsightsSummaryType } from '@n8n/api-types';
 import {
 	generateLinearGradient,
 	generateLineChartOptions,
 } from '@/features/insights/chartjs.utils';
-import {
-	GRANULARITY_DATE_FORMAT_MASK,
-	INSIGHTS_UNIT_MAPPING,
-} from '@/features/insights/insights.constants';
+import { useI18n } from '@/composables/useI18n';
 import { transformInsightsAverageRunTime } from '@/features/insights/insights.utils';
 import { smartDecimal } from '@n8n/utils/number/smartDecimal';
-import { type ChartData, Filler, type ScriptableContext } from 'chart.js';
-import { computed } from 'vue';
-import { Line } from 'vue-chartjs';
-import type { ChartProps } from './insightChartProps';
+import { INSIGHTS_UNIT_MAPPING } from '@/features/insights/insights.constants';
 
-const props = defineProps<ChartProps>();
+const props = defineProps<{
+	data: InsightsByTime[];
+	type: InsightsSummaryType;
+}>();
+
 const i18n = useI18n();
 
 const chartOptions = computed(() =>
@@ -25,7 +27,7 @@ const chartOptions = computed(() =>
 				callbacks: {
 					label: (context) => {
 						const label = context.dataset.label ?? '';
-						return `${label} ${smartDecimal(context.parsed.y)}${INSIGHTS_UNIT_MAPPING[props.type](context.parsed.y)}`;
+						return `${label} ${smartDecimal(context.parsed.y)}${INSIGHTS_UNIT_MAPPING[props.type]}`;
 					},
 				},
 			},
@@ -38,7 +40,7 @@ const chartData = computed<ChartData<'line'>>(() => {
 	const data: number[] = [];
 
 	for (const entry of props.data) {
-		labels.push(GRANULARITY_DATE_FORMAT_MASK[props.granularity](entry.date));
+		labels.push(dateformat(entry.date, 'd. mmm'));
 
 		const value = transformInsightsAverageRunTime(entry.values.averageRunTime);
 
@@ -63,12 +65,7 @@ const chartData = computed<ChartData<'line'>>(() => {
 </script>
 
 <template>
-	<Line
-		data-test-id="insights-chart-average-runtime"
-		:data="chartData"
-		:options="chartOptions"
-		:plugins="[Filler]"
-	/>
+	<Line :data="chartData" :options="chartOptions" :plugins="[Filler]" />
 </template>
 
 <style lang="scss" module></style>

@@ -1,6 +1,5 @@
 import { RouterView, type RouteRecordRaw } from 'vue-router';
 import { VIEWS } from '@/constants';
-import { useInsightsStore } from '@/features/insights/insights.store';
 
 const MainSidebar = async () => await import('@/components/MainSidebar.vue');
 const InsightsDashboard = async () =>
@@ -9,10 +8,6 @@ const InsightsDashboard = async () =>
 export const insightsRoutes: RouteRecordRaw[] = [
 	{
 		path: '/insights',
-		beforeEnter() {
-			const insightsStore = useInsightsStore();
-			return insightsStore.isInsightsEnabled || { name: VIEWS.NOT_FOUND };
-		},
 		components: {
 			default: RouterView,
 			sidebar: MainSidebar,

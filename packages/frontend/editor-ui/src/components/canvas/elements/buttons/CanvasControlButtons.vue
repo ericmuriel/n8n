@@ -1,11 +1,9 @@
 <script setup lang="ts">
+import { Controls } from '@vue-flow/controls';
 import KeyboardShortcutTooltip from '@/components/KeyboardShortcutTooltip.vue';
 import TidyUpIcon from '@/components/TidyUpIcon.vue';
-import { useI18n } from '@n8n/i18n';
-import { Controls } from '@vue-flow/controls';
 import { computed } from 'vue';
-import { useExperimentalNdvStore } from '../../experimental/experimentalNdv.store';
-import { N8nIconButton } from '@n8n/design-system';
+import { useI18n } from '@/composables/useI18n';
 
 const props = withDefaults(
 	defineProps<{
@@ -24,18 +22,11 @@ const emit = defineEmits<{
 	'zoom-out': [];
 	'zoom-to-fit': [];
 	'tidy-up': [];
-	'toggle-zoom-mode': [];
 }>();
 
 const i18n = useI18n();
 
-const experimentalNdvStore = useExperimentalNdvStore();
-
-const isExperimentalNdvActive = computed(() => experimentalNdvStore.isActive(props.zoom));
-
-const isToggleZoomVisible = computed(() => experimentalNdvStore.isEnabled);
-
-const isResetZoomVisible = computed(() => !isToggleZoomVisible.value && props.zoom !== 1);
+const isResetZoomVisible = computed(() => props.zoom !== 1);
 
 function onResetZoom() {
 	emit('reset-zoom');
@@ -66,7 +57,7 @@ function onTidyUp() {
 			<N8nIconButton
 				type="tertiary"
 				size="large"
-				icon="maximize"
+				icon="expand"
 				data-test-id="zoom-to-fit"
 				@click="onZoomToFit"
 			/>
@@ -75,7 +66,7 @@ function onTidyUp() {
 			<N8nIconButton
 				type="tertiary"
 				size="large"
-				icon="zoom-in"
+				icon="search-plus"
 				data-test-id="zoom-in-button"
 				@click="onZoomIn"
 			/>
@@ -84,25 +75,9 @@ function onTidyUp() {
 			<N8nIconButton
 				type="tertiary"
 				size="large"
-				icon="zoom-out"
+				icon="search-minus"
 				data-test-id="zoom-out-button"
 				@click="onZoomOut"
-			/>
-		</KeyboardShortcutTooltip>
-		<KeyboardShortcutTooltip
-			v-if="isToggleZoomVisible"
-			:label="
-				i18n.baseText(isExperimentalNdvActive ? 'nodeView.leaveZoomMode' : 'nodeView.enterZoomMode')
-			"
-			:shortcut="{ keys: ['Z'] }"
-		>
-			<N8nIconButton
-				square
-				type="tertiary"
-				size="large"
-				:class="$style.iconButton"
-				:icon="isExperimentalNdvActive ? 'undo-2' : 'crosshair'"
-				@click="emit('toggle-zoom-mode')"
 			/>
 		</KeyboardShortcutTooltip>
 		<KeyboardShortcutTooltip
@@ -113,7 +88,7 @@ function onTidyUp() {
 			<N8nIconButton
 				type="tertiary"
 				size="large"
-				icon="undo-2"
+				icon="undo"
 				data-test-id="reset-zoom-button"
 				@click="onResetZoom"
 			/>
@@ -134,37 +109,14 @@ function onTidyUp() {
 				<TidyUpIcon />
 			</N8nButton>
 		</KeyboardShortcutTooltip>
-		<N8nTooltip
-			v-if="isExperimentalNdvActive"
-			placement="top"
-			:content="i18n.baseText('nodeView.expandAllNodes')"
-		>
-			<N8nIconButton
-				type="tertiary"
-				size="large"
-				icon="maximize-2"
-				@click="experimentalNdvStore.expandAllNodes"
-			/>
-		</N8nTooltip>
-		<N8nTooltip
-			v-if="isExperimentalNdvActive"
-			placement="top"
-			:content="i18n.baseText('nodeView.collapseAllNodes')"
-		>
-			<N8nIconButton
-				type="tertiary"
-				size="large"
-				icon="minimize-2"
-				@click="experimentalNdvStore.collapseAllNodes"
-			/>
-		</N8nTooltip>
 	</Controls>
 </template>
 
 <style module lang="scss">
 .iconButton {
-	padding-left: 0;
-	padding-right: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 
 	svg {
 		width: 16px;

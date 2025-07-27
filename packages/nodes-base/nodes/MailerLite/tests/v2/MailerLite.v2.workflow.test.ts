@@ -1,5 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
+
+import { getWorkflowFilenames, testWorkflows } from '@test/nodes/Helpers';
 
 import {
 	getCreateResponseV2,
@@ -22,6 +23,7 @@ describe('MailerLite', () => {
 			mock.put('/subscribers/user@n8n.io').reply(200, getUpdateSubscriberResponseV2);
 		});
 
-		new NodeTestHarness().setupTests();
+		const workflows = getWorkflowFilenames(__dirname);
+		testWorkflows(workflows);
 	});
 });

@@ -67,14 +67,6 @@
                         }
                     }
                 },
-                "link_preview_options": {
-                    "type": "object",
-                    "properties": {
-                        "is_disabled": {
-                            "type": "boolean"
-                        }
-                    }
-                },
                 "message_id": {
                     "type": "integer"
                 },
@@ -84,5 +76,5 @@
             }
         }
     },
-    "version": 4
+    "version": 1
 }

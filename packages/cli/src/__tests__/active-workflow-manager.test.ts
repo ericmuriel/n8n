@@ -1,5 +1,3 @@
-import { mockLogger } from '@n8n/backend-test-utils';
-import type { WorkflowEntity, WorkflowRepository } from '@n8n/db';
 import { mock } from 'jest-mock-extended';
 import type { InstanceSettings } from 'n8n-core';
 import type {
@@ -12,6 +10,8 @@ import type {
 import { Workflow } from 'n8n-workflow';
 
 import { ActiveWorkflowManager } from '@/active-workflow-manager';
+import type { WorkflowEntity } from '@/databases/entities/workflow-entity';
+import type { WorkflowRepository } from '@/databases/repositories/workflow.repository';
 import type { NodeTypes } from '@/node-types';
 
 describe('ActiveWorkflowManager', () => {
@@ -23,7 +23,7 @@ describe('ActiveWorkflowManager', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		activeWorkflowManager = new ActiveWorkflowManager(
-			mockLogger(),
+			mock(),
 			mock(),
 			mock(),
 			mock(),
@@ -36,8 +36,8 @@ describe('ActiveWorkflowManager', () => {
 			mock(),
 			mock(),
 			mock(),
-			instanceSettings,
 			mock(),
+			instanceSettings,
 			mock(),
 			mock(),
 		);
@@ -138,12 +138,12 @@ describe('ActiveWorkflowManager', () => {
 					);
 					workflowRepository.findById.mockResolvedValue(mock<WorkflowEntity>({ active: false }));
 
-					const added = await activeWorkflowManager.add('some-id', mode);
+					const result = await activeWorkflowManager.add('some-id', mode);
 
 					expect(checkSpy).not.toHaveBeenCalled();
 					expect(addWebhooksSpy).not.toHaveBeenCalled();
 					expect(addTriggersAndPollersSpy).not.toHaveBeenCalled();
-					expect(added).toEqual({ triggersAndPollers: false, webhooks: false });
+					expect(result).toBe(false);
 				},
 			);
 		});

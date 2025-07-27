@@ -14,13 +14,10 @@ import { useUIStore } from '@/stores/ui.store';
 import { DRAG_EVENT_DATA_KEY } from '@/constants';
 import { useAssistantStore } from '@/stores/assistant.store';
 import N8nIconButton from '@n8n/design-system/components/N8nIconButton/IconButton.vue';
-import { useBuilderStore } from '@/stores/builder.store';
-import type { NodeTypeSelectedPayload } from '@/Interface';
-import { onClickOutside } from '@vueuse/core';
 
 export interface Props {
 	active?: boolean;
-	onNodeTypeSelected?: (value: NodeTypeSelectedPayload[]) => void;
+	onNodeTypeSelected?: (nodeType: string[]) => void;
 }
 
 const props = defineProps<Props>();
@@ -28,11 +25,10 @@ const { resetViewStacks } = useViewStacks();
 const { registerKeyHook } = useKeyboardNavigation();
 const emit = defineEmits<{
 	closeNodeCreator: [];
-	nodeTypeSelected: [value: NodeTypeSelectedPayload[]];
+	nodeTypeSelected: [value: string[]];
 }>();
 const uiStore = useUIStore();
 const assistantStore = useAssistantStore();
-const builderStore = useBuilderStore();
 
 const { setShowScrim, setActions, setMergeNodes } = useNodeCreatorStore();
 const { generateMergedNodesAndActions } = useActionsGenerator();
@@ -47,21 +43,9 @@ const showScrim = computed(() => useNodeCreatorStore().showScrim);
 const viewStacksLength = computed(() => useViewStacks().viewStacks.length);
 
 const nodeCreatorInlineStyle = computed(() => {
-	const rightPosition = getRightOffset();
+	const rightPosition = assistantStore.isAssistantOpen ? assistantStore.chatWidth : 0;
 	return { top: `${uiStore.bannersHeight + uiStore.headerHeight}px`, right: `${rightPosition}px` };
 });
-
-function getRightOffset() {
-	if (assistantStore.isAssistantOpen) {
-		return assistantStore.chatWidth;
-	}
-	if (builderStore.isAssistantOpen) {
-		return builderStore.chatWidth;
-	}
-
-	return 0;
-}
-
 function onMouseUpOutside() {
 	if (state.mousedownInsideEvent) {
 		const clickEvent = new MouseEvent('click', {
@@ -152,8 +136,6 @@ const { nodeCreator } = toRefs(state);
 onBeforeUnmount(() => {
 	unBindOnMouseUpOutside();
 });
-
-onClickOutside(nodeCreator, () => emit('closeNodeCreator'));
 </script>
 
 <template>
@@ -168,7 +150,7 @@ onClickOutside(nodeCreator, () => emit('closeNodeCreator'));
 			v-if="active"
 			:class="$style.close"
 			type="secondary"
-			icon="x"
+			icon="times"
 			aria-label="Close Node Creator"
 			@click="emit('closeNodeCreator')"
 		/>

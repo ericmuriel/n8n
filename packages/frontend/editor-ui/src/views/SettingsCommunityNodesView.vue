@@ -15,9 +15,8 @@ import { useExternalHooks } from '@/composables/useExternalHooks';
 import { useRouter } from 'vue-router';
 import { usePushConnection } from '@/composables/usePushConnection';
 import { usePushConnectionStore } from '@/stores/pushConnection.store';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { useTelemetry } from '@/composables/useTelemetry';
-import { useSettingsStore } from '@/stores/settings.store';
 
 const PACKAGE_COUNT_THRESHOLD = 31;
 
@@ -34,21 +33,8 @@ const documentTitle = useDocumentTitle();
 
 const communityNodesStore = useCommunityNodesStore();
 const uiStore = useUIStore();
-const settingsStore = useSettingsStore();
-
-const getEmptyStateTitle = computed(() => {
-	if (!settingsStore.isUnverifiedPackagesEnabled) {
-		return i18n.baseText('settings.communityNodes.empty.verified.only.title');
-	}
-
-	return i18n.baseText('settings.communityNodes.empty.title');
-});
 
 const getEmptyStateDescription = computed(() => {
-	if (!settingsStore.isUnverifiedPackagesEnabled) {
-		return i18n.baseText('settings.communityNodes.empty.verified.only.description');
-	}
-
 	const packageCount = communityNodesStore.availablePackageCount;
 
 	return packageCount < PACKAGE_COUNT_THRESHOLD
@@ -65,15 +51,14 @@ const getEmptyStateDescription = computed(() => {
 			});
 });
 
-const getEmptyStateButtonText = computed(() => {
-	if (!settingsStore.isUnverifiedPackagesEnabled) return '';
-	return i18n.baseText('settings.communityNodes.empty.installPackageLabel');
-});
+const getEmptyStateButtonText = computed(() =>
+	i18n.baseText('settings.communityNodes.empty.installPackageLabel'),
+);
 
 const actionBoxConfig = computed(() => {
 	return {
 		calloutText: '',
-		calloutTheme: undefined,
+		calloutTheme: '',
 		hideButton: false,
 	};
 });
@@ -154,11 +139,7 @@ onBeforeUnmount(() => {
 		<div :class="$style.headingContainer">
 			<n8n-heading size="2xlarge">{{ i18n.baseText('settings.communityNodes') }}</n8n-heading>
 			<n8n-button
-				v-if="
-					settingsStore.isUnverifiedPackagesEnabled &&
-					communityNodesStore.getInstalledPackages.length > 0 &&
-					!loading
-				"
+				v-if="communityNodesStore.getInstalledPackages.length > 0 && !loading"
 				:label="i18n.baseText('settings.communityNodes.installModal.installButton.label')"
 				size="large"
 				@click="openInstallModal"
@@ -176,10 +157,9 @@ onBeforeUnmount(() => {
 			:class="$style.actionBoxContainer"
 		>
 			<n8n-action-box
-				:heading="getEmptyStateTitle"
+				:heading="i18n.baseText('settings.communityNodes.empty.title')"
 				:description="getEmptyStateDescription"
 				:button-text="getEmptyStateButtonText"
-				:button-disabled="!settingsStore.isUnverifiedPackagesEnabled"
 				:callout-text="actionBoxConfig.calloutText"
 				:callout-theme="actionBoxConfig.calloutTheme"
 				@click:button="onClickEmptyStateButton"

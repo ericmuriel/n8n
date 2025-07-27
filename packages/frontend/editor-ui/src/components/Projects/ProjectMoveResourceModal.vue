@@ -1,29 +1,23 @@
 <script lang="ts" setup>
-import Modal from '@/components/Modal.vue';
-import ProjectMoveResourceModalCredentialsList from '@/components/Projects/ProjectMoveResourceModalCredentialsList.vue';
-import ProjectMoveSuccessToastMessage from '@/components/Projects/ProjectMoveSuccessToastMessage.vue';
-import { useTelemetry } from '@/composables/useTelemetry';
-import { useToast } from '@/composables/useToast';
-import { VIEWS } from '@/constants';
-import type { ICredentialsResponse, IUsedCredential, IWorkflowDb } from '@/Interface';
-import { getResourcePermissions } from '@n8n/permissions';
-import { useCredentialsStore } from '@/stores/credentials.store';
-import { useProjectsStore } from '@/stores/projects.store';
-import { useUIStore } from '@/stores/ui.store';
-import { useWorkflowsStore } from '@/stores/workflows.store';
-import { ProjectTypes } from '@/types/projects.types';
-import {
-	getTruncatedProjectName,
-	MAX_NAME_LENGTH,
-	ResourceType,
-	splitName,
-} from '@/utils/projects.utils';
-import { useI18n } from '@n8n/i18n';
-import type { EventBus } from '@n8n/utils/event-bus';
-import { sortByProperty } from '@n8n/utils/sort/sortByProperty';
+import { ref, computed, onMounted, h } from 'vue';
 import { truncate } from '@n8n/utils/string/truncate';
-import { computed, h, onMounted, ref } from 'vue';
-import { I18nT } from 'vue-i18n';
+import type { ICredentialsResponse, IUsedCredential, IWorkflowDb } from '@/Interface';
+import { useI18n } from '@/composables/useI18n';
+import { useUIStore } from '@/stores/ui.store';
+import { useProjectsStore } from '@/stores/projects.store';
+import Modal from '@/components/Modal.vue';
+import { VIEWS } from '@/constants';
+import { ResourceType, splitName } from '@/utils/projects.utils';
+import { useTelemetry } from '@/composables/useTelemetry';
+import { ProjectTypes } from '@/types/projects.types';
+import ProjectMoveSuccessToastMessage from '@/components/Projects/ProjectMoveSuccessToastMessage.vue';
+import ProjectMoveResourceModalCredentialsList from '@/components/Projects/ProjectMoveResourceModalCredentialsList.vue';
+import { useToast } from '@/composables/useToast';
+import { getResourcePermissions } from '@/permissions';
+import { sortByProperty } from '@n8n/utils/sort/sortByProperty';
+import type { EventBus } from '@n8n/utils/event-bus';
+import { useWorkflowsStore } from '@/stores/workflows.store';
+import { useCredentialsStore } from '@/stores/credentials.store';
 
 const props = defineProps<{
 	modalName: string;
@@ -94,9 +88,10 @@ const selectedProject = computed(() =>
 const isResourceInTeamProject = computed(() => isHomeProjectTeam(props.data.resource));
 const isResourceWorkflow = computed(() => props.data.resourceType === ResourceType.Workflow);
 const targetProjectName = computed(() => {
-	return getTruncatedProjectName(selectedProject.value?.name);
+	const { name, email } = splitName(selectedProject.value?.name ?? '');
+	return truncate(name ?? email ?? '', 25);
 });
-const resourceName = computed(() => truncate(props.data.resource.name, MAX_NAME_LENGTH));
+const resourceName = computed(() => truncate(props.data.resource.name, 25));
 
 const isHomeProjectTeam = (resource: IWorkflowDb | ICredentialsResponse) =>
 	resource.homeProject?.type === ProjectTypes.Team;
@@ -125,7 +120,6 @@ const moveResource = async () => {
 			props.data.resourceType,
 			props.data.resource.id,
 			selectedProject.value.id,
-			undefined,
 			shareUsedCredentials.value ? shareableCredentials.value.map((c) => c.id) : undefined,
 		);
 		closeModal();
@@ -178,8 +172,6 @@ onMounted(async () => {
 		project_from_type: projectsStore.currentProject?.type ?? projectsStore.personalProject?.type,
 	});
 
-	await projectsStore.getAvailableProjects();
-
 	if (isResourceWorkflow.value) {
 		const [workflow, credentials] = await Promise.all([
 			workflowsStore.fetchWorkflow(props.data.resource.id),
@@ -202,25 +194,25 @@ onMounted(async () => {
 				}}
 			</N8nHeading>
 			<N8nText>
-				<I18nT keypath="projects.move.resource.modal.message" scope="global">
+				<i18n-t keypath="projects.move.resource.modal.message">
 					<template #resourceName
 						><strong>{{ resourceName }}</strong></template
 					>
 					<template v-if="isResourceInTeamProject" #inTeamProject>
-						<I18nT keypath="projects.move.resource.modal.message.team" scope="global">
+						<i18n-t keypath="projects.move.resource.modal.message.team">
 							<template #resourceHomeProjectName
 								><strong>{{ homeProjectName }}</strong></template
 							>
-						</I18nT>
+						</i18n-t>
 					</template>
 					<template v-else #inPersonalProject>
-						<I18nT keypath="projects.move.resource.modal.message.personal" scope="global">
+						<i18n-t keypath="projects.move.resource.modal.message.personal">
 							<template #resourceHomeProjectName
 								><strong>{{ homeProjectName }}</strong></template
 							>
-						</I18nT>
+						</i18n-t>
 					</template>
-				</I18nT>
+				</i18n-t>
 			</N8nText>
 		</template>
 		<template #content>
@@ -241,18 +233,18 @@ onMounted(async () => {
 						v-for="p in filteredProjects"
 						:key="p.id"
 						:value="p.id"
-						:label="p.name ?? ''"
+						:label="p.name"
 					></N8nOption>
 				</N8nSelect>
 				<N8nText>
-					<I18nT keypath="projects.move.resource.modal.message.sharingNote" scope="global">
+					<i18n-t keypath="projects.move.resource.modal.message.sharingNote">
 						<template #note
 							><strong>{{
 								i18n.baseText('projects.move.resource.modal.message.note')
 							}}</strong></template
 						>
 						<template #resourceTypeLabel>{{ props.data.resourceTypeLabel }}</template>
-					</I18nT>
+					</i18n-t>
 					<span
 						v-if="props.data.resource.sharedWithProjects?.length ?? 0 > 0"
 						:class="$style.textBlock"
@@ -272,7 +264,7 @@ onMounted(async () => {
 						:class="$style.textBlock"
 						data-test-id="project-move-resource-modal-checkbox-all"
 					>
-						<I18nT keypath="projects.move.resource.modal.message.usedCredentials" scope="global">
+						<i18n-t keypath="projects.move.resource.modal.message.usedCredentials">
 							<template #usedCredentials>
 								<N8nTooltip placement="top">
 									<span :class="$style.tooltipText">
@@ -291,13 +283,10 @@ onMounted(async () => {
 									</template>
 								</N8nTooltip>
 							</template>
-						</I18nT>
+						</i18n-t>
 					</N8nCheckbox>
 					<span v-if="unShareableCredentials.length" :class="$style.textBlock">
-						<I18nT
-							keypath="projects.move.resource.modal.message.unAccessibleCredentials.note"
-							scope="global"
-						>
+						<i18n-t keypath="projects.move.resource.modal.message.unAccessibleCredentials.note">
 							<template #credentials>
 								<N8nTooltip placement="top">
 									<span :class="$style.tooltipText">{{
@@ -311,7 +300,7 @@ onMounted(async () => {
 									</template>
 								</N8nTooltip>
 							</template>
-						</I18nT>
+						</i18n-t>
 					</span>
 				</N8nText>
 			</div>

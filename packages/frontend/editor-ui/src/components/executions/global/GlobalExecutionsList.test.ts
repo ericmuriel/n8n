@@ -1,10 +1,9 @@
 import { vi, describe, it, expect } from 'vitest';
-import merge from 'lodash/merge';
+import { merge } from 'lodash-es';
 import { createTestingPinia } from '@pinia/testing';
 import userEvent from '@testing-library/user-event';
 import { faker } from '@faker-js/faker';
-import { STORES } from '@n8n/stores';
-import { VIEWS } from '@/constants';
+import { STORES, VIEWS } from '@/constants';
 import ExecutionsList from '@/components/executions/global/GlobalExecutionsList.vue';
 import { randomInt, type ExecutionSummary } from 'n8n-workflow';
 import type { MockedStore } from '@/__tests__/utils';

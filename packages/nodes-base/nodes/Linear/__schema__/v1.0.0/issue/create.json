@@ -7,17 +7,6 @@
         "createdAt": {
             "type": "string"
         },
-        "creator": {
-            "type": "object",
-            "properties": {
-                "displayName": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
         "dueDate": {
             "type": "null"
         },
@@ -45,5 +34,5 @@
             "type": "string"
         }
     },
-    "version": 2
+    "version": 1
 }

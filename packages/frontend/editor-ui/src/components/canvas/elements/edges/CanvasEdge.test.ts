@@ -90,7 +90,7 @@ describe('CanvasEdge', () => {
 		await user.unhover(getByTestId('edge-label'));
 		expect(getByTestId('canvas-edge-toolbar')).toBeInTheDocument();
 
-		await vi.advanceTimersByTimeAsync(600);
+		await vi.advanceTimersByTimeAsync(300);
 
 		expect(queryByTestId('canvas-edge-toolbar')).not.toBeInTheDocument();
 	});
@@ -100,10 +100,9 @@ describe('CanvasEdge', () => {
 
 		const edge = container.querySelector('.vue-flow__edge-path');
 
-		// Since v-bind in CSS creates dynamic styles, we should test that the edge element exists
-		// and has the expected class rather than testing the specific CSS property
-		expect(edge).toBeInTheDocument();
-		expect(edge).toHaveClass('edge');
+		expect(edge).toHaveStyle({
+			stroke: 'var(--color-foreground-xdark)',
+		});
 	});
 
 	it('should correctly style a pinned connection', () => {
@@ -113,10 +112,9 @@ describe('CanvasEdge', () => {
 
 		const edge = container.querySelector('.vue-flow__edge-path');
 
-		// Since v-bind in CSS creates dynamic styles, we should test that the edge element exists
-		// and has the expected class rather than testing the specific CSS property
-		expect(edge).toBeInTheDocument();
-		expect(edge).toHaveClass('edge');
+		expect(edge).toHaveStyle({
+			stroke: 'var(--color-secondary)',
+		});
 	});
 
 	it('should render a correct bezier path', () => {
@@ -187,9 +185,9 @@ describe('CanvasEdge', () => {
 			},
 		});
 
-		const labelWrapper = container.querySelector('.vue-flow__edge-label');
+		const label = container.querySelector('.vue-flow__edge-label')?.childNodes[0];
 
-		expect(labelWrapper).toHaveClass('straight');
+		expect(label).toHaveAttribute('style', 'transform: translate(0, -100%);');
 	});
 
 	it("should render a label in the middle of the connector when it isn't straight", () => {
@@ -201,8 +199,8 @@ describe('CanvasEdge', () => {
 			},
 		});
 
-		const labelWrapper = container.querySelector('.vue-flow__edge-label');
+		const label = container.querySelector('.vue-flow__edge-label')?.childNodes[0];
 
-		expect(labelWrapper).not.toHaveClass('straight');
+		expect(label).toHaveAttribute('style', 'transform: translate(0, 0%);');
 	});
 });

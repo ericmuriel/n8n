@@ -1,5 +1,5 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
+import { testWorkflows, getWorkflowFilenames } from '@test/nodes/Helpers';
 
-describe('Test Html Node > extractHtmlContent', () => {
-	new NodeTestHarness().setupTests();
-});
+const workflows = getWorkflowFilenames(__dirname);
+
+describe('Test Html Node > extractHtmlContent', () => testWorkflows(workflows));

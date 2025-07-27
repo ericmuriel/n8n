@@ -1,12 +1,14 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
 
+import { getWorkflowFilenames, testWorkflows } from '@test/nodes/Helpers';
+
 import { postCreate, postGet, postGetMany, postUpdate } from '../apiResponses';
-import { credentials } from '../credentials';
 
 describe('Wordpress > Post Workflows', () => {
+	const workflows = getWorkflowFilenames(__dirname);
+
 	beforeAll(() => {
-		const mock = nock(credentials.wordpressApi.url);
+		const mock = nock('https://myblog.com');
 		mock.get('/wp-json/wp/v2/posts/1').reply(200, postGet);
 		mock.get('/wp-json/wp/v2/posts').query({ per_page: 10, page: 1 }).reply(200, postGetMany);
 		mock
@@ -33,5 +35,5 @@ describe('Wordpress > Post Workflows', () => {
 			.reply(200, postUpdate);
 	});
 
-	new NodeTestHarness().setupTests({ credentials });
+	testWorkflows(workflows);
 });

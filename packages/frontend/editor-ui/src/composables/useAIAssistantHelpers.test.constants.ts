@@ -110,7 +110,7 @@ export const SUPPORT_CHAT_TEST_PAYLOAD: ChatRequest.RequestPayload = {
 				name: '🧪 Assistant context test',
 				active: false,
 				connections: {
-					'When clicking ‘Execute workflow’': {
+					'When clicking ‘Test workflow’': {
 						main: [
 							[
 								{
@@ -154,7 +154,7 @@ export const SUPPORT_CHAT_TEST_PAYLOAD: ChatRequest.RequestPayload = {
 							notice: '',
 						},
 						id: 'c457ff96-3b0c-4dbc-b47f-dc88396a46ae',
-						name: 'When clicking ‘Execute workflow’',
+						name: 'When clicking ‘Test workflow’',
 						type: 'n8n-nodes-base.manualTrigger',
 						position: [-60, 200],
 						typeVersion: 1,
@@ -274,11 +274,10 @@ export const SUPPORT_CHAT_TEST_PAYLOAD: ChatRequest.RequestPayload = {
 			},
 			executionData: {
 				runData: {
-					'When clicking ‘Execute workflow’': [
+					'When clicking ‘Test workflow’': [
 						{
 							hints: [],
 							startTime: 1737540693122,
-							executionIndex: 0,
 							executionTime: 1,
 							source: [],
 							executionStatus: 'success',
@@ -288,11 +287,10 @@ export const SUPPORT_CHAT_TEST_PAYLOAD: ChatRequest.RequestPayload = {
 						{
 							hints: [],
 							startTime: 1737540693124,
-							executionIndex: 1,
 							executionTime: 2,
 							source: [
 								{
-									previousNode: 'When clicking ‘Execute workflow’',
+									previousNode: 'When clicking ‘Test workflow’',
 								},
 							],
 							executionStatus: 'success',
@@ -302,7 +300,6 @@ export const SUPPORT_CHAT_TEST_PAYLOAD: ChatRequest.RequestPayload = {
 						{
 							hints: [],
 							startTime: 1737540693126,
-							executionIndex: 2,
 							executionTime: 0,
 							source: [
 								{
@@ -316,7 +313,6 @@ export const SUPPORT_CHAT_TEST_PAYLOAD: ChatRequest.RequestPayload = {
 						{
 							hints: [],
 							startTime: 1737540693127,
-							executionIndex: 3,
 							executionTime: 0,
 							source: [
 								{
@@ -330,7 +326,6 @@ export const SUPPORT_CHAT_TEST_PAYLOAD: ChatRequest.RequestPayload = {
 						{
 							hints: [],
 							startTime: 1737540693127,
-							executionIndex: 4,
 							executionTime: 28,
 							source: [
 								{

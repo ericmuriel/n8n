@@ -6,10 +6,12 @@ import {
 	MANUAL_TRIGGER_NODE_NAME,
 	MANUAL_TRIGGER_NODE_DISPLAY_NAME,
 } from '../constants';
+import { MessageBox as MessageBoxClass } from '../pages/modals/message-box';
 import { NDV } from '../pages/ndv';
 import { WorkflowPage as WorkflowPageClass } from '../pages/workflow';
 
 const WorkflowPage = new WorkflowPageClass();
+const messageBox = new MessageBoxClass();
 const ndv = new NDV();
 
 describe('Undo/Redo', () => {
@@ -94,10 +96,19 @@ describe('Undo/Redo', () => {
 			.then(($node) => {
 				const { x: x1, y: y1 } = $node[0].getBoundingClientRect();
 
-				cy.drag(getCanvasNodes().last(), [50, 150], {
-					realMouse: true,
-					abs: true,
-				});
+				cy.ifCanvasVersion(
+					() => {
+						cy.drag('[data-test-id="canvas-node"].jtk-drag-selected', [50, 150], {
+							clickToFinish: true,
+						});
+					},
+					() => {
+						cy.drag(getCanvasNodes().last(), [50, 150], {
+							realMouse: true,
+							abs: true,
+						});
+					},
+				);
 
 				getCanvasNodes()
 					.last()
@@ -209,7 +220,6 @@ describe('Undo/Redo', () => {
 		WorkflowPage.getters.nodeConnections().should('have.length', 1);
 		cy.get(WorkflowPage.getters.getEndpointSelector('input', 'Switch')).should('have.length', 1);
 
-		cy.wait(1000); // Clipboard paste is throttled
 		cy.fixture('Test_workflow_form_switch.json').then((data) => {
 			cy.get('body').paste(JSON.stringify(data));
 		});
@@ -246,11 +256,11 @@ describe('Undo/Redo', () => {
 		WorkflowPage.getters.workflowMenuItemImportFromURLItem().should('be.visible');
 		WorkflowPage.getters.workflowMenuItemImportFromURLItem().click();
 		// Try while prompt is open
-		WorkflowPage.getters.inputURLImportWorkflowFromURL().click();
+		messageBox.getters.header().click();
 		WorkflowPage.actions.hitUndo();
 		WorkflowPage.getters.canvasNodes().should('have.have.length', 1);
 		// Close prompt and try again
-		WorkflowPage.getters.cancelActionImportWorkflowFromURL().click();
+		messageBox.actions.cancel();
 		WorkflowPage.actions.hitUndo();
 		WorkflowPage.getters.canvasNodes().should('have.have.length', 0);
 	});

@@ -14,11 +14,6 @@ export class WorkflowFilter extends BaseFilter {
 	@Expose()
 	active?: boolean;
 
-	@IsBoolean()
-	@IsOptional()
-	@Expose()
-	isArchived?: boolean;
-
 	@IsArray()
 	@IsString({ each: true })
 	@IsOptional()

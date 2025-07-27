@@ -17,7 +17,7 @@ export class ManualTrigger implements INodeType {
 		eventTriggerDescription: '',
 		maxNodes: 1,
 		defaults: {
-			name: 'When clicking ‘Execute workflow’',
+			name: 'When clicking ‘Test workflow’',
 			color: '#909298',
 		},
 

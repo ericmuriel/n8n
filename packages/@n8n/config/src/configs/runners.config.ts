@@ -1,21 +1,18 @@
-import { z } from 'zod';
-
 import { Config, Env } from '../decorators';
 
-const runnerModeSchema = z.enum(['internal', 'external']);
-
-export type TaskRunnerMode = z.infer<typeof runnerModeSchema>;
+/**
+ * Whether to enable task runners and how to run them
+ * - internal: Task runners are run as a child process and launched by n8n
+ * - external: Task runners are run as a separate program not launched by n8n
+ */
+export type TaskRunnerMode = 'internal' | 'external';
 
 @Config
 export class TaskRunnersConfig {
 	@Env('N8N_RUNNERS_ENABLED')
 	enabled: boolean = false;
 
-	/**
-	 * Whether the task runner should run as a child process spawned by n8n (internal mode)
-	 * or as a separate process launched outside n8n (external mode).
-	 */
-	@Env('N8N_RUNNERS_MODE', runnerModeSchema)
+	@Env('N8N_RUNNERS_MODE')
 	mode: TaskRunnerMode = 'internal';
 
 	/** Endpoint which task runners connect to */
@@ -62,11 +59,4 @@ export class TaskRunnersConfig {
 	/** How often (in seconds) the runner must send a heartbeat to the broker, else the task will be aborted. (In internal mode, the runner will also  be restarted.) Must be greater than 0. */
 	@Env('N8N_RUNNERS_HEARTBEAT_INTERVAL')
 	heartbeatInterval: number = 30;
-
-	/**
-	 * Whether to disable all security measures in the task runner. **Discouraged for production use.**
-	 * Set to `true` for compatibility with modules that rely on insecure JS features.
-	 */
-	@Env('N8N_RUNNERS_INSECURE_MODE')
-	insecureMode: boolean = false;
 }

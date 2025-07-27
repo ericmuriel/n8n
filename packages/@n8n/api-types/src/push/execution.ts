@@ -1,11 +1,6 @@
-import type {
-	ExecutionStatus,
-	ITaskData,
-	ITaskStartedData,
-	WorkflowExecuteMode,
-} from 'n8n-workflow';
+import type { ExecutionStatus, ITaskData, WorkflowExecuteMode } from 'n8n-workflow';
 
-export type ExecutionStarted = {
+type ExecutionStarted = {
 	type: 'executionStarted';
 	data: {
 		executionId: string;
@@ -18,14 +13,14 @@ export type ExecutionStarted = {
 	};
 };
 
-export type ExecutionWaiting = {
+type ExecutionWaiting = {
 	type: 'executionWaiting';
 	data: {
 		executionId: string;
 	};
 };
 
-export type ExecutionFinished = {
+type ExecutionFinished = {
 	type: 'executionFinished';
 	data: {
 		executionId: string;
@@ -36,23 +31,22 @@ export type ExecutionFinished = {
 	};
 };
 
-export type ExecutionRecovered = {
+type ExecutionRecovered = {
 	type: 'executionRecovered';
 	data: {
 		executionId: string;
 	};
 };
 
-export type NodeExecuteBefore = {
+type NodeExecuteBefore = {
 	type: 'nodeExecuteBefore';
 	data: {
 		executionId: string;
 		nodeName: string;
-		data: ITaskStartedData;
 	};
 };
 
-export type NodeExecuteAfter = {
+type NodeExecuteAfter = {
 	type: 'nodeExecuteAfter';
 	data: {
 		executionId: string;

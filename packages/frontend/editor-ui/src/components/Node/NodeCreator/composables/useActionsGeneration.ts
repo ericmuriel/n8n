@@ -6,8 +6,7 @@ import {
 	CUSTOM_API_CALL_KEY,
 	HTTP_REQUEST_NODE_TYPE,
 } from '@/constants';
-import memoize from 'lodash/memoize';
-import startCase from 'lodash/startCase';
+import { memoize, startCase } from 'lodash-es';
 import type {
 	ICredentialType,
 	INodeProperties,
@@ -16,11 +15,10 @@ import type {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 
-import { i18n } from '@n8n/i18n';
+import { i18n } from '@/plugins/i18n';
 
 import { getCredentialOnlyNodeType } from '@/utils/credentialOnlyNodes';
 import { formatTriggerActionName } from '../utils';
-import { useEvaluationStore } from '@/stores/evaluation.store.ee';
 
 const PLACEHOLDER_RECOMMENDED_ACTION_KEY = 'placeholder_recommended';
 
@@ -77,7 +75,7 @@ function getNodeTypeBase(nodeTypeDescription: INodeTypeDescription, label?: stri
 }
 
 function operationsCategory(nodeTypeDescription: INodeTypeDescription): ActionTypeDescription[] {
-	if (nodeTypeDescription.properties.find((property) => property.name === 'resource')) return [];
+	if (!!nodeTypeDescription.properties.find((property) => property.name === 'resource')) return [];
 
 	const matchedProperty = nodeTypeDescription.properties.find(
 		(property) => property.name?.toLowerCase() === 'operation',
@@ -195,7 +193,7 @@ function triggersCategory(nodeTypeDescription: INodeTypeDescription): ActionType
 function resourceCategories(nodeTypeDescription: INodeTypeDescription): ActionTypeDescription[] {
 	const transformedNodes: ActionTypeDescription[] = [];
 	const matchedProperties = nodeTypeDescription.properties.filter(
-		(property) => property.name === 'resource',
+		(property) => property.displayName?.toLowerCase() === 'resource',
 	);
 
 	matchedProperties.forEach((property) => {
@@ -332,18 +330,7 @@ export function useActionsGenerator() {
 		nodeTypes: INodeTypeDescription[],
 		httpOnlyCredentials: ICredentialType[],
 	) {
-		const evaluationStore = useEvaluationStore();
-
-		const visibleNodeTypes = nodeTypes.filter((node) => {
-			if (evaluationStore.isEvaluationEnabled) {
-				return true;
-			}
-			return (
-				node.name !== 'n8n-nodes-base.evaluation' &&
-				node.name !== 'n8n-nodes-base.evaluationTrigger'
-			);
-		});
-
+		const visibleNodeTypes = [...nodeTypes];
 		const actions: ActionsRecord<typeof mergedNodes> = {};
 		const mergedNodes: SimplifiedNodeType[] = [];
 		visibleNodeTypes

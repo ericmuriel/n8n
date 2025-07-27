@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { VIEWS } from '@/constants';
-import { useI18n } from '@n8n/i18n';
-import { I18nT } from 'vue-i18n';
+import { useI18n } from '@/composables/useI18n';
 
 const locale = useI18n();
 
@@ -43,13 +42,13 @@ const workflowHistoryRoute = computed<{ name: string; params: { workflowId: stri
 			<span v-else-if="isFeatureEnabled">{{
 				locale.baseText('workflowHistory.button.tooltip.enabled')
 			}}</span>
-			<I18nT v-else keypath="workflowHistory.button.tooltip.disabled" scope="global">
+			<i18n-t v-else keypath="workflowHistory.button.tooltip.disabled">
 				<template #link>
 					<N8nLink size="small" @click="emit('upgrade')">
 						{{ locale.baseText('workflowHistory.button.tooltip.disabled.link') }}
 					</N8nLink>
 				</template>
-			</I18nT>
+			</i18n-t>
 		</template>
 	</N8nTooltip>
 </template>

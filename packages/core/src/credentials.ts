@@ -1,4 +1,3 @@
-import { isObjectLiteral } from '@n8n/backend-common';
 import { Container } from '@n8n/di';
 import type { ICredentialDataDecryptedObject, ICredentialsEncrypted } from 'n8n-workflow';
 import { ApplicationError, ICredentials, jsonParse } from 'n8n-workflow';
@@ -6,6 +5,7 @@ import * as a from 'node:assert';
 
 import { CREDENTIAL_ERRORS } from '@/constants';
 import { Cipher } from '@/encryption/cipher';
+import { isObjectLiteral } from '@/utils';
 
 export class CredentialDataError extends ApplicationError {
 	constructor({ name, type, id }: Credentials<object>, message: string, cause?: unknown) {

@@ -1,21 +1,17 @@
-import type { RoleChangeRequestDto } from '@n8n/api-types';
-import { Logger } from '@n8n/backend-common';
-import type { PublicUser } from '@n8n/db';
-import { User, UserRepository } from '@n8n/db';
 import { Service } from '@n8n/di';
-import { getGlobalScopes, type AssignableGlobalRole } from '@n8n/permissions';
+import { Logger } from 'n8n-core';
 import type { IUserSettings } from 'n8n-workflow';
 import { UnexpectedError } from 'n8n-workflow';
 
+import type { User, AssignableRole } from '@/databases/entities/user';
+import { UserRepository } from '@/databases/repositories/user.repository';
 import { InternalServerError } from '@/errors/response-errors/internal-server.error';
 import { EventService } from '@/events/event.service';
-import type { Invitation } from '@/interfaces';
+import type { Invitation, PublicUser } from '@/interfaces';
 import type { PostHogClient } from '@/posthog';
 import type { UserRequest } from '@/requests';
 import { UrlService } from '@/services/url.service';
 import { UserManagementMailer } from '@/user-management/email';
-
-import { PublicApiKeyService } from './public-api-key.service';
 
 @Service()
 export class UserService {
@@ -25,7 +21,6 @@ export class UserService {
 		private readonly mailer: UserManagementMailer,
 		private readonly urlService: UrlService,
 		private readonly eventService: EventService,
-		private readonly publicApiKeyService: PublicApiKeyService,
 	) {}
 
 	async update(userId: string, data: Partial<User>) {
@@ -61,17 +56,15 @@ export class UserService {
 			inviterId?: string;
 			posthog?: PostHogClient;
 			withScopes?: boolean;
-			mfaAuthenticated?: boolean;
 		},
 	) {
-		const { password, updatedAt, authIdentities, mfaRecoveryCodes, mfaSecret, ...rest } = user;
+		const { password, updatedAt, authIdentities, ...rest } = user;
 
-		const providerType = authIdentities?.[0]?.providerType;
+		const ldapIdentity = authIdentities?.find((i) => i.providerType === 'ldap');
 
 		let publicUser: PublicUser = {
 			...rest,
-			signInType: providerType ?? 'email',
-			isOwner: user.role === 'global:owner',
+			signInType: ldapIdentity ? 'ldap' : 'email',
 		};
 
 		if (options?.withInviteUrl && !options?.inviterId) {
@@ -86,12 +79,9 @@ export class UserService {
 			publicUser = await this.addFeatureFlags(publicUser, options.posthog);
 		}
 
-		// TODO: resolve these directly in the frontend
 		if (options?.withScopes) {
-			publicUser.globalScopes = getGlobalScopes(user);
+			publicUser.globalScopes = user.globalScopes;
 		}
-
-		publicUser.mfaAuthenticated = options?.mfaAuthenticated ?? false;
 
 		return publicUser;
 	}
@@ -127,7 +117,7 @@ export class UserService {
 	private async sendEmails(
 		owner: User,
 		toInviteUsers: { [key: string]: string },
-		role: AssignableGlobalRole,
+		role: AssignableRole,
 	) {
 		const domain = this.urlService.getInstanceBaseUrl();
 
@@ -236,20 +226,5 @@ export class UserService {
 		);
 
 		return { usersInvited, usersCreated: toCreateUsers.map(({ email }) => email) };
-	}
-
-	async changeUserRole(user: User, targetUser: User, newRole: RoleChangeRequestDto) {
-		return await this.userRepository.manager.transaction(async (trx) => {
-			await trx.update(User, { id: targetUser.id }, { role: newRole.newRoleName });
-
-			const adminDowngradedToMember =
-				user.role === 'global:owner' &&
-				targetUser.role === 'global:admin' &&
-				newRole.newRoleName === 'global:member';
-
-			if (adminDowngradedToMember) {
-				await this.publicApiKeyService.removeOwnerOnlyScopesFromApiKeys(targetUser, trx);
-			}
-		});
 	}
 }

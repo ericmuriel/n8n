@@ -1,8 +1,7 @@
 import vue from '@vitejs/plugin-vue';
 import { posix as pathPosix, resolve } from 'path';
-import { defineConfig, mergeConfig, type UserConfig } from 'vite';
+import { defineConfig, mergeConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import svgLoader from 'vite-svg-loader';
 
 import { vitestConfig } from '@n8n/vitest-config/frontend';
@@ -29,28 +28,12 @@ const alias = [
 		replacement: resolve(packagesDir, 'frontend', '@n8n', 'chat', 'src$1'),
 	},
 	{
-		find: /^@n8n\/api-requests(.+)$/,
-		replacement: resolve(packagesDir, 'frontend', '@n8n', 'api-requests', 'src$1'),
-	},
-	{
 		find: /^@n8n\/composables(.+)$/,
 		replacement: resolve(packagesDir, 'frontend', '@n8n', 'composables', 'src$1'),
 	},
 	{
-		find: /^@n8n\/constants(.+)$/,
-		replacement: resolve(packagesDir, '@n8n', 'constants', 'src$1'),
-	},
-	{
 		find: /^@n8n\/design-system(.+)$/,
 		replacement: resolve(packagesDir, 'frontend', '@n8n', 'design-system', 'src$1'),
-	},
-	{
-		find: /^@n8n\/i18n(.+)$/,
-		replacement: resolve(packagesDir, 'frontend', '@n8n', 'i18n', 'src$1'),
-	},
-	{
-		find: /^@n8n\/stores(.+)$/,
-		replacement: resolve(packagesDir, 'frontend', '@n8n', 'stores', 'src$1'),
 	},
 	{
 		find: /^@n8n\/utils(.+)$/,
@@ -58,20 +41,15 @@ const alias = [
 	},
 	...['orderBy', 'camelCase', 'cloneDeep', 'startCase'].map((name) => ({
 		find: new RegExp(`^lodash.${name}$`, 'i'),
-		replacement: `lodash/${name}`,
+		replacement: `lodash-es/${name}`,
 	})),
 	{
 		find: /^lodash\.(.+)$/,
-		replacement: 'lodash/$1',
-	},
-	{
-		// For sanitize-html
-		find: 'source-map-js',
-		replacement: resolve(__dirname, 'src/source-map-js-shim'),
+		replacement: 'lodash-es/$1',
 	},
 ];
 
-const plugins: UserConfig['plugins'] = [
+const plugins = [
 	icons({
 		compiler: 'vue3',
 		autoInstall: true,
@@ -79,12 +57,8 @@ const plugins: UserConfig['plugins'] = [
 	components({
 		dts: './src/components.d.ts',
 		resolvers: [
-			(componentName) => {
-				if (componentName.startsWith('N8n'))
-					return { name: componentName, from: '@n8n/design-system' };
-			},
 			iconsResolver({
-				prefix: 'Icon',
+				prefix: 'icon',
 			}),
 		],
 	}),
@@ -101,39 +75,11 @@ const plugins: UserConfig['plugins'] = [
 		],
 	}),
 	vue(),
-	svgLoader({
-		svgoConfig: {
-			plugins: [
-				{
-					name: 'preset-default',
-					params: {
-						overrides: {
-							// disable a default plugin
-							cleanupIds: false,
-						},
-					},
-				},
-			],
-		},
-	}),
+	svgLoader(),
 	legacy({
 		modernTargets: browsers,
 		modernPolyfills: true,
 		renderLegacyChunks: false,
-	}),
-	{
-		name: 'Insert config script',
-		transformIndexHtml: (html, ctx) => {
-			const replacement = ctx.server
-				? '' // Skip when using Vite dev server
-				: '<script src="/{{REST_ENDPOINT}}/config.js"></script>';
-
-			return html.replace('%CONFIG_SCRIPT%', replacement);
-		},
-	},
-	// For sanitize-html
-	nodePolyfills({
-		include: ['fs', 'path', 'url', 'util', 'timers'],
 	}),
 ];
 
@@ -151,7 +97,7 @@ export default mergeConfig(
 		plugins,
 		resolve: { alias },
 		base: publicPath,
-		envPrefix: ['VUE', 'N8N_ENV_FEAT'],
+		envPrefix: 'VUE_APP',
 		css: {
 			preprocessorOptions: {
 				scss: {

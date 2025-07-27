@@ -1,12 +1,11 @@
 <script lang="ts" setup>
-import KeyboardShortcutTooltip from '@/components/KeyboardShortcutTooltip.vue';
+import { LOGS_PANEL_STATE } from '@/components/CanvasChat/types/logs';
 import { useCanvasOperations } from '@/composables/useCanvasOperations';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { useRunWorkflow } from '@/composables/useRunWorkflow';
 import { CHAT_TRIGGER_NODE_TYPE } from '@/constants';
-import { useLogsStore } from '@/stores/logs.store';
+import { useUIStore } from '@/stores/ui.store';
 import { useWorkflowsStore } from '@/stores/workflows.store';
-import { N8nButton } from '@n8n/design-system';
 import { computed, useCssModule } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -17,7 +16,6 @@ const {
 	disabled,
 	readOnly,
 	class: cls,
-	isExperimentalNdvActive,
 } = defineProps<{
 	name: string;
 	type: string;
@@ -25,7 +23,6 @@ const {
 	disabled?: boolean;
 	readOnly?: boolean;
 	class?: string;
-	isExperimentalNdvActive: boolean;
 }>();
 
 const style = useCssModule();
@@ -34,24 +31,18 @@ const containerClass = computed(() => ({
 	[style.container]: true,
 	[style.interactive]: !disabled && !readOnly,
 	[style.hovered]: !!hovered,
-	[style.isExperimentalNdvActive]: isExperimentalNdvActive,
 }));
 
 const router = useRouter();
 const i18n = useI18n();
 const workflowsStore = useWorkflowsStore();
-const logsStore = useLogsStore();
+const uiStore = useUIStore();
 const { runEntireWorkflow } = useRunWorkflow({ router });
-const { startChat } = useCanvasOperations();
+const { toggleChatOpen } = useCanvasOperations({ router });
 
-const isChatOpen = computed(() => logsStore.isOpen);
-const isExecuting = computed(() => workflowsStore.isWorkflowRunning);
+const isChatOpen = computed(() => workflowsStore.chatPanelState !== LOGS_PANEL_STATE.CLOSED);
+const isExecuting = computed(() => uiStore.isActionActive.workflowRunning);
 const testId = computed(() => `execute-workflow-button-${name}`);
-
-async function handleClickExecute() {
-	workflowsStore.setSelectedTriggerNodeName(name);
-	await runEntireWorkflow('node', name);
-}
 </script>
 
 <template>
@@ -59,46 +50,27 @@ async function handleClickExecute() {
 	<div :class="containerClass" @click.stop.prevent @mousedown.stop.prevent>
 		<div>
 			<div :class="$style.bolt">
-				<N8nIcon icon="bolt-filled" size="large" />
+				<FontAwesomeIcon icon="bolt" size="lg" />
 			</div>
 
 			<template v-if="!readOnly">
-				<template v-if="type === CHAT_TRIGGER_NODE_TYPE">
-					<N8nButton
-						v-if="isChatOpen"
-						type="secondary"
-						icon="message-circle"
-						size="large"
-						:disabled="isExecuting"
-						:data-test-id="testId"
-						:label="i18n.baseText('chat.hide')"
-						@click.capture="logsStore.toggleOpen(false)"
-					/>
-					<KeyboardShortcutTooltip
-						v-else
-						:label="i18n.baseText('chat.open')"
-						:shortcut="{ keys: ['c'] }"
-					>
-						<N8nButton
-							type="primary"
-							icon="message-circle"
-							size="large"
-							:disabled="isExecuting"
-							:data-test-id="testId"
-							:label="i18n.baseText('chat.open')"
-							@click.capture="startChat('node')"
-						/>
-					</KeyboardShortcutTooltip>
-				</template>
+				<N8nButton
+					v-if="type === CHAT_TRIGGER_NODE_TYPE"
+					:type="isChatOpen ? 'secondary' : 'primary'"
+					size="large"
+					:disabled="isExecuting"
+					:data-test-id="testId"
+					:label="isChatOpen ? i18n.baseText('chat.hide') : i18n.baseText('chat.open')"
+					@click.capture="toggleChatOpen('node')"
+				/>
 				<N8nButton
 					v-else
 					type="primary"
-					icon="flask-conical"
 					size="large"
 					:disabled="isExecuting"
 					:data-test-id="testId"
 					:label="i18n.baseText('nodeView.runButtonText.executeWorkflow')"
-					@click.capture="handleClickExecute"
+					@click.capture="runEntireWorkflow('node', name)"
 				/>
 			</template>
 		</div>
@@ -129,18 +101,12 @@ async function handleClickExecute() {
 		transition:
 			translate 0.1s ease-in,
 			opacity 0.1s ease-in;
-		transform: scale(var(--canvas-zoom-compensation-factor, 1));
-		transform-origin: center right;
 	}
 
 	&.interactive.hovered button {
 		opacity: 1;
 		translate: 0 0;
 		pointer-events: all;
-	}
-
-	&.isExperimentalNdvActive {
-		height: var(--spacing-2xl);
 	}
 }
 

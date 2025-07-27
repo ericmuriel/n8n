@@ -1,4 +1,5 @@
 import { VariableListRequestDto } from '@n8n/api-types';
+
 import {
 	Delete,
 	Get,
@@ -8,8 +9,7 @@ import {
 	Post,
 	Query,
 	RestController,
-} from '@n8n/decorators';
-
+} from '@/decorators';
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
 import { NotFoundError } from '@/errors/response-errors/not-found.error';
 import { VariableCountLimitReachedError } from '@/errors/variable-count-limit-reached.error';

@@ -1,13 +1,13 @@
 import { computed } from 'vue';
 import { defineStore } from 'pinia';
 import { useAsyncState } from '@vueuse/core';
-import type { ListInsightsWorkflowQueryDto, InsightsDateRange } from '@n8n/api-types';
+import type { ListInsightsWorkflowQueryDto } from '@n8n/api-types';
 import * as insightsApi from '@/features/insights/insights.api';
-import { useRootStore } from '@n8n/stores/useRootStore';
+import { useRootStore } from '@/stores/root.store';
 import { useUsersStore } from '@/stores/users.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { transformInsightsSummary } from '@/features/insights/insights.utils';
-import { getResourcePermissions } from '@n8n/permissions';
+import { getResourcePermissions } from '@/permissions';
 
 export const useInsightsStore = defineStore('insights', () => {
 	const rootStore = useRootStore();
@@ -18,45 +18,27 @@ export const useInsightsStore = defineStore('insights', () => {
 		() => getResourcePermissions(usersStore.currentUser?.globalScopes).insights,
 	);
 
-	const isInsightsEnabled = computed(() =>
-		settingsStore.settings.activeModules.includes('insights'),
-	);
-
-	const isDashboardEnabled = computed(() => !!settingsStore.moduleSettings.insights?.dashboard);
+	const isInsightsEnabled = computed(() => settingsStore.settings.insights.enabled);
 
 	const isSummaryEnabled = computed(
 		() => globalInsightsPermissions.value.list && isInsightsEnabled.value,
 	);
 
-	const weeklySummary = useAsyncState(
-		async () => {
-			const raw = await insightsApi.fetchInsightsSummary(rootStore.restApiContext, {
-				dateRange: 'week',
-			});
-			return transformInsightsSummary(raw);
-		},
-		[],
-		{ immediate: false, resetOnExecute: false },
-	);
-
 	const summary = useAsyncState(
-		async (filter?: { dateRange: InsightsDateRange['key'] }) => {
-			const raw = await insightsApi.fetchInsightsSummary(rootStore.restApiContext, filter);
+		async () => {
+			const raw = await insightsApi.fetchInsightsSummary(rootStore.restApiContext);
 			return transformInsightsSummary(raw);
 		},
 		[],
-		{ immediate: false, resetOnExecute: false },
+		{ immediate: false },
 	);
 
 	const charts = useAsyncState(
-		async (filter?: { dateRange: InsightsDateRange['key'] }) => {
-			const dataFetcher = isDashboardEnabled.value
-				? insightsApi.fetchInsightsByTime
-				: insightsApi.fetchInsightsTimeSaved;
-			return await dataFetcher(rootStore.restApiContext, filter);
+		async () => {
+			return await insightsApi.fetchInsightsByTime(rootStore.restApiContext);
 		},
 		[],
-		{ immediate: false, resetOnExecute: false },
+		{ immediate: false },
 	);
 
 	const table = useAsyncState(
@@ -67,20 +49,15 @@ export const useInsightsStore = defineStore('insights', () => {
 			count: 0,
 			data: [],
 		},
-		{ immediate: false, resetOnExecute: false },
+		{ immediate: false },
 	);
-
-	const dateRanges = computed(() => settingsStore.moduleSettings.insights?.dateRanges ?? []);
 
 	return {
 		globalInsightsPermissions,
 		isInsightsEnabled,
 		isSummaryEnabled,
-		isDashboardEnabled,
-		weeklySummary,
 		summary,
 		charts,
 		table,
-		dateRanges,
 	};
 });

@@ -1,19 +1,32 @@
-import type { ProjectIcon, ProjectType } from '@n8n/api-types';
-import type {
-	APIRequest,
-	AuthenticatedRequest,
-	Variables,
-	Project,
-	User,
-	ListQueryDb,
-	WorkflowHistory,
-} from '@n8n/db';
-import type { AssignableGlobalRole, GlobalRole, ProjectRole, Scope } from '@n8n/permissions';
+import type { ProjectIcon, ProjectRole, ProjectType } from '@n8n/api-types';
+import type { Scope } from '@n8n/permissions';
+import type express from 'express';
 import type {
 	ICredentialDataDecryptedObject,
+	IDataObject,
 	INodeCredentialTestRequest,
 	IPersonalizationSurveyAnswersV4,
+	IUser,
 } from 'n8n-workflow';
+
+import type { CredentialsEntity } from '@/databases/entities/credentials-entity';
+import type { Project } from '@/databases/entities/project';
+import type { AssignableRole, GlobalRole, User } from '@/databases/entities/user';
+import type { Variables } from '@/databases/entities/variables';
+import type { WorkflowEntity } from '@/databases/entities/workflow-entity';
+import type { WorkflowHistory } from '@/databases/entities/workflow-history';
+import type { SecretsProvider, SecretsProviderState } from '@/interfaces';
+
+import type { ScopesField } from './services/role.service';
+
+export type APIRequest<
+	RouteParams = {},
+	ResponseBody = {},
+	RequestBody = {},
+	RequestQuery = {},
+> = express.Request<RouteParams, ResponseBody, RequestBody, RequestQuery> & {
+	browserId?: string;
+};
 
 export type AuthlessRequest<
 	RouteParams = {},
@@ -21,6 +34,23 @@ export type AuthlessRequest<
 	RequestBody = {},
 	RequestQuery = {},
 > = APIRequest<RouteParams, ResponseBody, RequestBody, RequestQuery>;
+
+export type AuthenticatedRequest<
+	RouteParams = {},
+	ResponseBody = {},
+	RequestBody = {},
+	RequestQuery = {},
+> = Omit<APIRequest<RouteParams, ResponseBody, RequestBody, RequestQuery>, 'user' | 'cookies'> & {
+	user: User;
+	cookies: Record<string, string | undefined>;
+	headers: express.Request['headers'] & {
+		'push-ref': string;
+	};
+};
+
+// ----------------------------------
+//            list query
+// ----------------------------------
 
 export namespace ListQuery {
 	export type Request = AuthenticatedRequest<{}, {}, {}, Params> & {
@@ -42,15 +72,64 @@ export namespace ListQuery {
 		take?: number;
 		sortBy?: string;
 	};
+
+	/**
+	 * Slim workflow returned from a list query operation.
+	 */
+	export namespace Workflow {
+		type OptionalBaseFields = 'name' | 'active' | 'versionId' | 'createdAt' | 'updatedAt' | 'tags';
+
+		type BaseFields = Pick<WorkflowEntity, 'id'> &
+			Partial<Pick<WorkflowEntity, OptionalBaseFields>>;
+
+		type SharedField = Partial<Pick<WorkflowEntity, 'shared'>>;
+
+		type SortingField = 'createdAt' | 'updatedAt' | 'name';
+
+		export type SortOrder = `${SortingField}:asc` | `${SortingField}:desc`;
+
+		type OwnedByField = { ownedBy: SlimUser | null; homeProject: SlimProject | null };
+
+		export type Plain = BaseFields;
+
+		export type WithSharing = BaseFields & SharedField;
+
+		export type WithOwnership = BaseFields & OwnedByField;
+
+		type SharedWithField = { sharedWith: SlimUser[]; sharedWithProjects: SlimProject[] };
+
+		export type WithOwnedByAndSharedWith = BaseFields &
+			OwnedByField &
+			SharedWithField &
+			SharedField;
+
+		export type WithScopes = BaseFields & ScopesField & SharedField;
+	}
+
+	export namespace Credentials {
+		type OwnedByField = { homeProject: SlimProject | null };
+
+		type SharedField = Partial<Pick<CredentialsEntity, 'shared'>>;
+
+		type SharedWithField = { sharedWithProjects: SlimProject[] };
+
+		export type WithSharing = CredentialsEntity & SharedField;
+
+		export type WithOwnedByAndSharedWith = CredentialsEntity &
+			OwnedByField &
+			SharedWithField &
+			SharedField;
+
+		export type WithScopes = CredentialsEntity & ScopesField & SharedField;
+	}
 }
 
-// ----------------------------------
-//            list query
-// ----------------------------------
+type SlimUser = Pick<IUser, 'id' | 'email' | 'firstName' | 'lastName'>;
+export type SlimProject = Pick<Project, 'id' | 'type' | 'name' | 'icon'>;
 
 export function hasSharing(
-	workflows: ListQueryDb.Workflow.Plain[] | ListQueryDb.Workflow.WithSharing[],
-): workflows is ListQueryDb.Workflow.WithSharing[] {
+	workflows: ListQuery.Workflow.Plain[] | ListQuery.Workflow.WithSharing[],
+): workflows is ListQuery.Workflow.WithSharing[] {
 	return workflows.some((w) => 'shared' in w);
 }
 
@@ -122,7 +201,7 @@ export declare namespace UserRequest {
 			email: string;
 			inviteAcceptUrl?: string;
 			emailSent: boolean;
-			role: AssignableGlobalRole;
+			role: AssignableRole;
 		};
 		error?: string;
 	};
@@ -149,7 +228,6 @@ export declare namespace UserRequest {
 // ----------------------------------
 
 export declare namespace MFA {
-	type Enforce = AuthenticatedRequest<{}, {}, { enforce: boolean }, {}>;
 	type Verify = AuthenticatedRequest<{}, {}, { mfaCode: string }, {}>;
 	type Activate = AuthenticatedRequest<{}, {}, { mfaCode: string }, {}>;
 	type Disable = AuthenticatedRequest<{}, {}, { mfaCode?: string; mfaRecoveryCode?: string }, {}>;
@@ -203,11 +281,7 @@ export declare namespace AnnotationTagsRequest {
 export declare namespace NodeRequest {
 	type GetAll = AuthenticatedRequest;
 
-	type Post = AuthenticatedRequest<
-		{},
-		{},
-		{ name?: string; verify?: boolean; version?: string; checksum?: string }
-	>;
+	type Post = AuthenticatedRequest<{}, {}, { name?: string }>;
 
 	type Delete = AuthenticatedRequest<{}, {}, {}, { name: string }>;
 
@@ -222,6 +296,18 @@ export declare namespace LicenseRequest {
 	type Activate = AuthenticatedRequest<{}, {}, { activationKey: string }, {}>;
 }
 
+export type BinaryDataRequest = AuthenticatedRequest<
+	{},
+	{},
+	{},
+	{
+		id: string;
+		action: 'view' | 'download';
+		fileName?: string;
+		mimeType?: string;
+	}
+>;
+
 // ----------------------------------
 //           /variables
 // ----------------------------------
@@ -234,6 +320,28 @@ export declare namespace VariablesRequest {
 	type Create = AuthenticatedRequest<{}, {}, CreateUpdatePayload, {}>;
 	type Update = AuthenticatedRequest<{ id: string }, {}, CreateUpdatePayload, {}>;
 	type Delete = Get;
+}
+
+export declare namespace ExternalSecretsRequest {
+	type GetProviderResponse = Pick<SecretsProvider, 'displayName' | 'name' | 'properties'> & {
+		icon: string;
+		connected: boolean;
+		connectedAt: Date | null;
+		state: SecretsProviderState;
+		data: IDataObject;
+	};
+
+	type GetProviders = AuthenticatedRequest;
+	type GetProvider = AuthenticatedRequest<{ provider: string }, GetProviderResponse>;
+	type SetProviderSettings = AuthenticatedRequest<{ provider: string }, {}, IDataObject>;
+	type TestProviderSettings = SetProviderSettings;
+	type SetProviderConnected = AuthenticatedRequest<
+		{ provider: string },
+		{},
+		{ connected: boolean }
+	>;
+
+	type UpdateProvider = AuthenticatedRequest<{ provider: string }>;
 }
 
 // ----------------------------------
@@ -282,9 +390,8 @@ export declare namespace ProjectRequest {
 	type ProjectWithRelations = {
 		id: string;
 		name: string | undefined;
-		icon: ProjectIcon | null;
+		icon: ProjectIcon;
 		type: ProjectType;
-		description: string | null;
 		relations: ProjectRelationResponse[];
 		scopes: Scope[];
 	};

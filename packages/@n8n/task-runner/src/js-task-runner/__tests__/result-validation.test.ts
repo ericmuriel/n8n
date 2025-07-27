@@ -1,6 +1,5 @@
 import { ValidationError } from '@/js-task-runner/errors/validation-error';
 import {
-	NonArrayOfObjectsError,
 	validateRunForAllItemsOutput,
 	validateRunForEachItemOutput,
 } from '@/js-task-runner/result-validation';
@@ -23,13 +22,6 @@ describe('result validation', () => {
 			expect(() => {
 				validateRunForAllItemsOutput([{ json: {} }, { json: {} }, { json: {} }]);
 			}).not.toThrow();
-		});
-
-		it('should throw a NonArrayOfObjectsError if the output is an array of arrays (empty)', () => {
-			expect(() => {
-				// @ts-expect-error Intentionally invalid
-				validateRunForAllItemsOutput([[]]);
-			}).toThrowError(NonArrayOfObjectsError);
 		});
 
 		test.each([

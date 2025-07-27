@@ -27,13 +27,12 @@ export class ChainSummarization extends VersionedNodeType {
 					],
 				},
 			},
-			defaultVersion: 2.1,
+			defaultVersion: 2,
 		};
 
 		const nodeVersions: IVersionedNodeType['nodeVersions'] = {
 			1: new ChainSummarizationV1(baseDescription),
 			2: new ChainSummarizationV2(baseDescription),
-			2.1: new ChainSummarizationV2(baseDescription),
 		};
 
 		super(nodeVersions, baseDescription);

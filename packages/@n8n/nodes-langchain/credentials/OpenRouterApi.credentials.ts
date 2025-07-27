@@ -41,7 +41,7 @@ export class OpenRouterApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{ $credentials.url }}',
-			url: '/key',
+			url: '/models',
 		},
 	};
 }

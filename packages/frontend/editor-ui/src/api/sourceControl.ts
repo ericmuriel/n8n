@@ -3,15 +3,14 @@ import type {
 	PushWorkFolderRequestDto,
 	SourceControlledFile,
 } from '@n8n/api-types';
-import type { IRestApiContext } from '@n8n/rest-api-client';
+import type { IRestApiContext } from '@/Interface';
 import type {
 	SourceControlPreferences,
 	SourceControlStatus,
 	SshKeyTypes,
 } from '@/types/sourceControl.types';
-import type { IWorkflowDb } from '@/Interface';
 
-import { makeRestApiRequest } from '@n8n/rest-api-client';
+import { makeRestApiRequest } from '@/utils/apiUtils';
 import type { TupleToUnion } from '@/utils/typeHelpers';
 
 const sourceControlApiRoot = '/source-control';
@@ -55,17 +54,6 @@ export const getPreferences = async (
 
 export const getStatus = async (context: IRestApiContext): Promise<SourceControlStatus> => {
 	return await makeRestApiRequest(context, 'GET', `${sourceControlApiRoot}/status`);
-};
-
-export const getRemoteWorkflow = async (
-	context: IRestApiContext,
-	workflowId: string,
-): Promise<{ content: IWorkflowDb; type: 'workflow' }> => {
-	return await makeRestApiRequest(
-		context,
-		'GET',
-		`${sourceControlApiRoot}/remote-content/workflow/${workflowId}`,
-	);
 };
 
 export const getAggregatedStatus = async (

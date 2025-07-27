@@ -1,5 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
+
+import { testWorkflows } from '@test/nodes/Helpers';
 
 const API_RESPONSE = {
 	object: 'database',
@@ -69,7 +70,6 @@ describe('Test NotionV2, database => get', () => {
 		.get('/v1/databases/138fb9cb-4cf0-804c-8663-d8ecdd5e692f')
 		.reply(200, API_RESPONSE);
 
-	new NodeTestHarness().setupTests({
-		workflowFiles: ['get.workflow.json'],
-	});
+	const workflows = ['nodes/Notion/test/node/v2/database/get.workflow.json'];
+	testWorkflows(workflows);
 });

@@ -1671,11 +1671,7 @@ export class HubspotV2 implements INodeType {
 								}
 								//@ts-ignore
 								if (body.filterGroups.length > 3) {
-									throw new NodeOperationError(
-										this.getNode(),
-										'You can only have 3 filter groups',
-										{ itemIndex: i },
-									);
+									throw new NodeOperationError(this.getNode(), 'You can only have 3 filter groups');
 								}
 							}
 
@@ -2570,11 +2566,7 @@ export class HubspotV2 implements INodeType {
 								}
 								//@ts-ignore
 								if (body.filterGroups.length > 3) {
-									throw new NodeOperationError(
-										this.getNode(),
-										'You can only have 3 filter groups',
-										{ itemIndex: i },
-									);
+									throw new NodeOperationError(this.getNode(), 'You can only have 3 filter groups');
 								}
 							}
 

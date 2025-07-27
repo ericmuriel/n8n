@@ -1,9 +1,4 @@
-import { z } from 'zod';
-
 import { Config, Env } from '../decorators';
-
-const releaseChannelSchema = z.enum(['stable', 'beta', 'nightly', 'dev']);
-type ReleaseChannel = z.infer<typeof releaseChannelSchema>;
 
 @Config
 export class GenericConfig {
@@ -11,8 +6,8 @@ export class GenericConfig {
 	@Env('GENERIC_TIMEZONE')
 	timezone: string = 'America/New_York';
 
-	@Env('N8N_RELEASE_TYPE', releaseChannelSchema)
-	releaseChannel: ReleaseChannel = 'dev';
+	@Env('N8N_RELEASE_TYPE')
+	releaseChannel: 'stable' | 'beta' | 'nightly' | 'dev' = 'dev';
 
 	/** Grace period (in seconds) to wait for components to shut down before process exit. */
 	@Env('N8N_GRACEFUL_SHUTDOWN_TIMEOUT')

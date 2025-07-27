@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { NPS_SURVEY_MODAL_KEY } from '@/constants';
-import { useRootStore } from '@n8n/stores/useRootStore';
+import { VALID_EMAIL_REGEX, NPS_SURVEY_MODAL_KEY } from '@/constants';
+import { useRootStore } from '@/stores/root.store';
 import ModalDrawer from '@/components/ModalDrawer.vue';
 import { useToast } from '@/composables/useToast';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { ref, computed, watch } from 'vue';
 import { createEventBus } from '@n8n/utils/event-bus';
 import { useTelemetry } from '@/composables/useTelemetry';
@@ -23,32 +23,31 @@ const { APP_Z_INDEXES } = useStyles();
 const DEFAULT_TITLE = i18n.baseText('prompts.npsSurvey.recommendationQuestion');
 const GREAT_FEEDBACK_TITLE = i18n.baseText('prompts.npsSurvey.greatFeedbackTitle');
 const DEFAULT_FEEDBACK_TITLE = i18n.baseText('prompts.npsSurvey.defaultFeedbackTitle');
-const FEEDBACK_QUESTION_TITLE = i18n.baseText('prompts.npsSurvey.feedbackQuestionTitle');
+const PRODUCT_TEAM_MESSAGE = i18n.baseText('prompts.productTeamMessage');
 const VERY_LIKELY_OPTION = i18n.baseText('prompts.npsSurvey.veryLikely');
 const NOT_LIKELY_OPTION = i18n.baseText('prompts.npsSurvey.notLikely');
 const SEND = i18n.baseText('prompts.npsSurvey.send');
+const YOUR_EMAIL_ADDRESS = i18n.baseText('prompts.npsSurvey.yourEmailAddress');
 
-const form = ref<{ value: string; feedback: string }>({
-	value: '',
-	feedback: '',
-});
+const form = ref<{ value: string; email: string }>({ value: '', email: '' });
 const showButtons = ref(true);
-const showFeedback = ref(false);
 const modalBus = createEventBus();
 
 const modalTitle = computed(() => {
-	if (showFeedback.value) {
-		return FEEDBACK_QUESTION_TITLE;
-	}
 	if (form?.value?.value !== '') {
-		if (Number(form.value.value) > 7) {
+		if (Number(form.value) > 7) {
 			return GREAT_FEEDBACK_TITLE;
 		} else {
 			return DEFAULT_FEEDBACK_TITLE;
 		}
 	}
+
 	return DEFAULT_TITLE;
 });
+
+const isEmailValid = computed(
+	() => form?.value?.email && VALID_EMAIL_REGEX.test(String(form.value.email).toLowerCase()),
+);
 
 async function closeDialog(): Promise<void> {
 	if (form.value.value === '') {
@@ -59,22 +58,22 @@ async function closeDialog(): Promise<void> {
 
 		await useNpsSurveyStore().ignoreNpsSurvey();
 	}
-	// If the user closes the nps modal, we send two events
-	// 1. User responded value survey score
-	// 2. User responded value survey feedback (if not empty)
-	if (form.value.value !== '' && form.value.feedback.trim() === '') {
-		telemetry.track('User responded value survey feedback', {
+	if (form.value.value !== '' && form.value.email === '') {
+		telemetry.track('User responded value survey email', {
 			instance_id: rootStore.instanceId,
-			feedback: '',
+			email: '',
 			nps: form.value.value,
 		});
 	}
 }
 
+function onInputChange(value: string) {
+	form.value.email = value;
+}
+
 async function selectSurveyValue(value: string) {
 	form.value.value = value;
 	showButtons.value = false;
-	showFeedback.value = true;
 
 	telemetry.track('User responded value survey score', {
 		instance_id: rootStore.instanceId,
@@ -84,16 +83,12 @@ async function selectSurveyValue(value: string) {
 	await useNpsSurveyStore().respondNpsSurvey();
 }
 
-function onFeedbackInput(value: string) {
-	form.value.feedback = value;
-}
-
 async function send() {
-	if (form.value.feedback.trim() !== '') {
-		telemetry.track('User responded value survey feedback', {
+	if (isEmailValid.value) {
+		telemetry.track('User responded value survey email', {
 			instance_id: rootStore.instanceId,
+			email: form.value.email,
 			nps: form.value.value,
-			feedback: form.value.feedback,
 		});
 
 		toast.showMessage({
@@ -105,9 +100,8 @@ async function send() {
 
 		setTimeout(() => {
 			form.value.value = '';
-			form.value.feedback = '';
+			form.value.email = '';
 			showButtons.value = true;
-			showFeedback.value = false;
 		}, 1000);
 		modalBus.emit('close');
 	}
@@ -133,7 +127,7 @@ watch(
 		:modal="true"
 		:wrapper-closable="false"
 		direction="btt"
-		width="auto"
+		width="120px"
 		class="nps-survey"
 		:class="$style.npsSurvey"
 		:close-on-click-modal="false"
@@ -163,23 +157,21 @@ watch(
 						<n8n-text size="small" color="text-xlight">{{ VERY_LIKELY_OPTION }}</n8n-text>
 					</div>
 				</div>
-				<div v-else-if="showFeedback" :class="$style.feedback">
-					<div :class="$style.input" data-test-id="nps-survey-feedback">
+				<div v-else :class="$style.email">
+					<div :class="$style.input" data-test-id="nps-survey-email" @keyup.enter="send">
 						<n8n-input
-							v-model="form.feedback"
-							type="textarea"
-							:rows="2"
-							:class="$style.feedbackInput"
-							@update:model-value="onFeedbackInput"
+							v-model="form.email"
+							:placeholder="YOUR_EMAIL_ADDRESS"
+							@update:model-value="onInputChange"
 						/>
+						<div :class="$style.button">
+							<n8n-button :label="SEND" float="right" :disabled="!isEmailValid" @click="send" />
+						</div>
 					</div>
-					<div :class="$style.button" data-test-id="nps-survey-feedback-button">
-						<n8n-button
-							:label="SEND"
-							float="right"
-							:disabled="!form.feedback.trim()"
-							@click="send"
-						/>
+					<div :class="$style.disclaimer">
+						<n8n-text size="small" color="text-dark">
+							{{ PRODUCT_TEAM_MESSAGE }}
+						</n8n-text>
 					</div>
 				</div>
 			</section>
@@ -205,7 +197,6 @@ watch(
 .content {
 	display: flex;
 	justify-content: center;
-	margin-bottom: 10px;
 
 	@media (max-width: $breakpoint-xs) {
 		margin-top: 20px;
@@ -255,23 +246,8 @@ watch(
 	margin-left: 10px;
 }
 
-.feedback {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	margin-top: 2px;
-	position: relative;
-}
-
-.feedbackInput {
-	width: 350px;
-	max-width: 100%;
-	margin-bottom: 10px;
-}
-
-.feedbackInput textarea {
-	resize: none;
-	font-family: var(--font-family);
+.disclaimer {
+	margin-top: var(--spacing-4xs);
 }
 
 .npsSurvey {

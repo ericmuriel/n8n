@@ -13,7 +13,7 @@ import type {
 	ResourceMapperFields,
 	ResourceMapperValue,
 } from 'n8n-workflow';
-import { deepCopy, NodeHelpers } from 'n8n-workflow';
+import { NodeHelpers } from 'n8n-workflow';
 import { computed, onMounted, reactive, watch } from 'vue';
 import MappingModeSelect from './MappingModeSelect.vue';
 import MatchingColumnsSelect from './MatchingColumnsSelect.vue';
@@ -24,12 +24,12 @@ import {
 	parseResourceMapperFieldName,
 } from '@/utils/nodeTypesUtils';
 import { isFullExecutionResponse, isResourceMapperValue } from '@/utils/typeGuards';
-import { i18n as locale } from '@n8n/i18n';
+import { i18n as locale } from '@/plugins/i18n';
 import { useNDVStore } from '@/stores/ndv.store';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import { useDocumentVisibility } from '@/composables/useDocumentVisibility';
 import { N8nButton, N8nCallout, N8nNotice } from '@n8n/design-system';
-import isEqual from 'lodash/isEqual';
+import { isEqual } from 'lodash-es';
 
 type Props = {
 	parameter: INodeProperties;
@@ -537,9 +537,7 @@ function emitValueChanged(): void {
 	pruneParamValues();
 	emit('valueChanged', {
 		name: `${props.path}`,
-		// deepCopy ensures that mutations to state.paramValue that occur in
-		// this component are never visible to the store without explicit event emits
-		value: deepCopy(state.paramValue),
+		value: state.paramValue,
 		node: props.node?.name,
 	});
 	updateNodeIssues();
@@ -598,7 +596,7 @@ defineExpose({
 			@refresh-field-list="initFetching(true)"
 		/>
 		<N8nText v-if="!showMappingModeSelect && state.loading" size="small">
-			<N8nIcon icon="refresh-cw" size="xsmall" :spin="true" />
+			<N8nIcon icon="sync-alt" size="xsmall" :spin="true" />
 			{{
 				locale.baseText('resourceMapper.fetchingFields.message', {
 					interpolate: {
@@ -639,7 +637,7 @@ defineExpose({
 			<template #trailingContent>
 				<N8nButton
 					size="mini"
-					icon="refresh-cw"
+					icon="refresh"
 					type="secondary"
 					:loading="state.refreshInProgress"
 					@click="initFetching(true)"

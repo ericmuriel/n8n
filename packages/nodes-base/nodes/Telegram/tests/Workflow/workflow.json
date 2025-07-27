@@ -7,7 +7,7 @@
 			"typeVersion": 1,
 			"position": [-60, 2000],
 			"id": "c4d16e3b-b442-4497-87ca-b946f7106da8",
-			"name": "When clicking ‘Execute workflow’"
+			"name": "When clicking ‘Test workflow’"
 		},
 		{
 			"parameters": {},
@@ -556,9 +556,7 @@
 		],
 		"No Operation, do nothing1": [
 			{
-				"json": {
-					"error": "Chat not found"
-				}
+				"json": {}
 			}
 		],
 		"No Operation, do nothing2": [
@@ -1019,7 +1017,7 @@
 		]
 	},
 	"connections": {
-		"When clicking ‘Execute workflow’": {
+		"When clicking ‘Test workflow’": {
 			"main": [
 				[
 					{

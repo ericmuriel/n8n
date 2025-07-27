@@ -21,7 +21,7 @@ import { createEventBus } from '@n8n/utils/event-bus';
 import { useRouter } from 'vue-router';
 import { useWorkflowHelpers } from '@/composables/useWorkflowHelpers';
 import { isTriggerPanelObject } from '@/utils/typeGuards';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { useTelemetry } from '@/composables/useTelemetry';
 
 const props = withDefaults(
@@ -45,7 +45,7 @@ const workflowsStore = useWorkflowsStore();
 const ndvStore = useNDVStore();
 
 const router = useRouter();
-const workflowHelpers = useWorkflowHelpers();
+const workflowHelpers = useWorkflowHelpers({ router });
 const i18n = useI18n();
 const telemetry = useTelemetry();
 
@@ -162,7 +162,9 @@ const isListeningForEvents = computed(() => {
 	);
 });
 
-const workflowRunning = computed(() => workflowsStore.isWorkflowRunning);
+const workflowRunning = computed(() => {
+	return uiStore.isActionActive.workflowRunning;
+});
 
 const isActivelyPolling = computed(() => {
 	const triggeredNode = workflowsStore.executedNode;
@@ -477,7 +479,7 @@ const onNodeExecute = () => {
 	position: relative;
 	width: 100%;
 	height: 100%;
-	background-color: var(--color-run-data-background);
+	background-color: var(--color-background-base);
 	display: flex;
 	flex-direction: column;
 

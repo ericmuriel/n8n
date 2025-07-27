@@ -46,10 +46,3 @@ export type MysqlNodeCredentials = {
 	connectTimeout: number;
 } & WithSSL &
 	WithSSHTunnel;
-
-export type ParameterMatch = {
-	match: string;
-	index: number;
-	paramNumber: string;
-	isName: boolean;
-};

@@ -28,15 +28,6 @@ export async function supabaseApiRequest(
 		serviceRole: string;
 	}>('supabaseApi');
 
-	if (this.getNodeParameter('useCustomSchema', false)) {
-		const schema = this.getNodeParameter('schema', 'public');
-		if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) {
-			headers['Content-Profile'] = schema;
-		} else if (['GET', 'HEAD'].includes(method)) {
-			headers['Accept-Profile'] = schema;
-		}
-	}
-
 	const options: IRequestOptions = {
 		headers: {
 			Prefer: 'return=representation',
@@ -44,20 +35,18 @@ export async function supabaseApiRequest(
 		method,
 		qs,
 		body,
-		uri: uri ?? `${credentials.host}/rest/v1${resource}`,
+		uri: uri || `${credentials.host}/rest/v1${resource}`,
 		json: true,
 	};
-
 	try {
-		options.headers = Object.assign({}, options.headers, headers);
+		if (Object.keys(headers).length !== 0) {
+			options.headers = Object.assign({}, options.headers, headers);
+		}
 		if (Object.keys(body).length === 0) {
 			delete options.body;
 		}
 		return await this.helpers.requestWithAuthentication.call(this, 'supabaseApi', options);
 	} catch (error) {
-		if (error.description) {
-			error.message = `${error.message}: ${error.description}`;
-		}
 		throw new NodeApiError(this.getNode(), error as JsonObject);
 	}
 }

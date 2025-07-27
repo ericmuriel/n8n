@@ -11,8 +11,7 @@ import { useToast } from '@/composables/useToast';
 import { useCommunityNodesStore } from '@/stores/communityNodes.store';
 import { ref } from 'vue';
 import { useTelemetry } from '@/composables/useTelemetry';
-import { useI18n } from '@n8n/i18n';
-import { useNodeTypesStore } from '@/stores/nodeTypes.store';
+import { useI18n } from '@/composables/useI18n';
 
 const communityNodesStore = useCommunityNodesStore();
 
@@ -45,7 +44,6 @@ const onInstallClick = async () => {
 			infoTextErrorMessage.value = '';
 			loading.value = true;
 			await communityNodesStore.installPackage(packageName.value);
-			await useNodeTypesStore().getNodeTypes();
 			loading.value = false;
 			modalBus.emit('close');
 			toast.showMessage({
@@ -110,7 +108,7 @@ const onLearnMoreLinkClick = () => {
 				</div>
 				<n8n-button
 					:label="i18n.baseText('settings.communityNodes.browseButton.label')"
-					icon="external-link"
+					icon="external-link-alt"
 					:class="$style.browseButton"
 					@click="openNPMPage"
 				/>

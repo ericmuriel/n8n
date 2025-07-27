@@ -38,9 +38,6 @@ import {
 	sanitizeUiMessage,
 	setAgentOptions,
 } from '../GenericFunctions';
-import { setFilename } from './utils/binaryData';
-import { mimeTypeFromResponse } from './utils/parse';
-import { configureResponseOptimizer } from '../shared/optimizeResponse';
 
 function toText<T>(data: T) {
 	if (typeof data === 'object' && data !== null) {
@@ -73,15 +70,6 @@ export class HttpRequestV3 implements INodeType {
 					},
 				},
 			],
-			usableAsTool: {
-				replacements: {
-					codex: {
-						subcategories: {
-							Tools: ['Recommended Tools'],
-						},
-					},
-				},
-			},
 			properties: mainProperties,
 		};
 	}
@@ -102,7 +90,6 @@ export class HttpRequestV3 implements INodeType {
 		} catch {}
 
 		let httpBasicAuth;
-		let httpBearerAuth;
 		let httpDigestAuth;
 		let httpHeaderAuth;
 		let httpQueryAuth;
@@ -124,8 +111,6 @@ export class HttpRequestV3 implements INodeType {
 		let fullResponse = false;
 
 		let autoDetectResponseFormat = false;
-
-		let responseFileName: string | undefined;
 
 		// Can not be defined on a per item level
 		const pagination = this.getNodeParameter('options.pagination.pagination', 0, null, {
@@ -161,8 +146,6 @@ export class HttpRequestV3 implements INodeType {
 
 					if (genericCredentialType === 'httpBasicAuth') {
 						httpBasicAuth = await this.getCredentials('httpBasicAuth', itemIndex);
-					} else if (genericCredentialType === 'httpBearerAuth') {
-						httpBearerAuth = await this.getCredentials('httpBearerAuth', itemIndex);
 					} else if (genericCredentialType === 'httpDigestAuth') {
 						httpDigestAuth = await this.getCredentials('httpDigestAuth', itemIndex);
 					} else if (genericCredentialType === 'httpHeaderAuth') {
@@ -244,18 +227,11 @@ export class HttpRequestV3 implements INodeType {
 					allowUnauthorizedCerts: boolean;
 					queryParameterArrays: 'indices' | 'brackets' | 'repeat';
 					response: {
-						response: {
-							neverError: boolean;
-							responseFormat: string;
-							fullResponse: boolean;
-							outputPropertyName: string;
-						};
+						response: { neverError: boolean; responseFormat: string; fullResponse: boolean };
 					};
 					redirect: { redirect: { maxRedirects: number; followRedirects: boolean } };
 					lowercaseHeaders: boolean;
 				};
-
-				responseFileName = response?.response?.outputPropertyName;
 
 				const url = this.getNodeParameter('url', itemIndex) as string;
 
@@ -509,11 +485,6 @@ export class HttpRequestV3 implements INodeType {
 						pass: httpBasicAuth.password as string,
 					};
 					authDataKeys.auth = ['pass'];
-				}
-				if (httpBearerAuth !== undefined) {
-					requestOptions.headers = requestOptions.headers ?? {};
-					requestOptions.headers.Authorization = `Bearer ${String(httpBearerAuth.token)}`;
-					authDataKeys.headers = ['Authorization'];
 				}
 				if (httpHeaderAuth !== undefined) {
 					requestOptions.headers![httpHeaderAuth.name as string] = httpHeaderAuth.value;
@@ -861,8 +832,6 @@ export class HttpRequestV3 implements INodeType {
 						}
 					}
 				}
-				// This is a no-op outside of tool usage
-				const optimizeResponse = configureResponseOptimizer(this, itemIndex);
 
 				if (autoDetectResponseFormat && !fullResponse) {
 					delete response.headers;
@@ -870,10 +839,9 @@ export class HttpRequestV3 implements INodeType {
 					delete response.statusMessage;
 				}
 				if (!fullResponse) {
-					response = optimizeResponse(response.body);
-				} else {
-					response.body = optimizeResponse(response.body);
+					response = response.body;
 				}
+
 				if (responseFormat === 'file') {
 					const outputPropertyName = this.getNodeParameter(
 						'options.response.response.outputPropertyName',
@@ -915,14 +883,17 @@ export class HttpRequestV3 implements INodeType {
 					const preparedBinaryData = await this.helpers.prepareBinaryData(
 						binaryData,
 						undefined,
-						mimeTypeFromResponse(responseContentType),
+						responseContentType || undefined,
 					);
 
-					preparedBinaryData.fileName = setFilename(
-						preparedBinaryData,
-						requestOptions,
-						responseFileName,
-					);
+					if (
+						!preparedBinaryData.fileName &&
+						preparedBinaryData.fileExtension &&
+						typeof requestOptions.uri === 'string' &&
+						requestOptions.uri.endsWith(preparedBinaryData.fileExtension)
+					) {
+						preparedBinaryData.fileName = requestOptions.uri.split('/').pop();
+					}
 
 					newItem.binary![outputPropertyName] = preparedBinaryData;
 
@@ -940,6 +911,7 @@ export class HttpRequestV3 implements INodeType {
 								returnItem[outputPropertyName] = toText(response[property]);
 								continue;
 							}
+
 							returnItem[property] = response[property];
 						}
 						returnItems.push({
@@ -1000,6 +972,7 @@ export class HttpRequestV3 implements INodeType {
 						}
 
 						if (Array.isArray(response)) {
+							// eslint-disable-next-line @typescript-eslint/no-loop-func
 							response.forEach((item) =>
 								returnItems.push({
 									json: item,
@@ -1028,17 +1001,11 @@ export class HttpRequestV3 implements INodeType {
 			returnItems[0].json.data &&
 			Array.isArray(returnItems[0].json.data)
 		) {
-			const message =
-				'To split the contents of ‘data’ into separate items for easier processing, add a ‘Split Out’ node after this one';
-
-			if (this.addExecutionHints) {
-				this.addExecutionHints({
-					message,
-					location: 'outputPane',
-				});
-			} else {
-				this.logger.info(message);
-			}
+			this.addExecutionHints({
+				message:
+					'To split the contents of ‘data’ into separate items for easier processing, add a ‘Split Out’ node after this one',
+				location: 'outputPane',
+			});
 		}
 
 		return [returnItems];

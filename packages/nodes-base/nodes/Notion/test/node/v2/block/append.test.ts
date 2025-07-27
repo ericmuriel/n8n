@@ -1,5 +1,6 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
+
+import { testWorkflows } from '@test/nodes/Helpers';
 
 const API_RESPONSE = {
 	object: 'list',
@@ -415,7 +416,6 @@ describe('Test NotionV2, block => append', () => {
 		.patch('/v1/blocks/90e03468f8aa457695da02ccad963040/children')
 		.reply(200, API_RESPONSE);
 
-	new NodeTestHarness().setupTests({
-		workflowFiles: ['append.workflow.json'],
-	});
+	const workflows = ['nodes/Notion/test/node/v2/block/append.workflow.json'];
+	testWorkflows(workflows);
 });

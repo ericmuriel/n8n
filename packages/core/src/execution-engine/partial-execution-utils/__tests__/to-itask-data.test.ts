@@ -8,7 +8,6 @@ test('toITaskData', function () {
 		executionTime: 0,
 		source: [],
 		startTime: 0,
-		executionIndex: 0,
 		data: {
 			main: [[{ json: { value: 1 } }]],
 		},
@@ -19,7 +18,6 @@ test('toITaskData', function () {
 		executionTime: 0,
 		source: [],
 		startTime: 0,
-		executionIndex: 0,
 		data: {
 			main: [null, [{ json: { value: 1 } }]],
 		},
@@ -34,7 +32,6 @@ test('toITaskData', function () {
 		executionTime: 0,
 		source: [],
 		startTime: 0,
-		executionIndex: 0,
 		data: {
 			[NodeConnectionTypes.AiAgent]: [null, [{ json: { value: 1 } }]],
 		},
@@ -49,7 +46,6 @@ test('toITaskData', function () {
 		executionStatus: 'success',
 		executionTime: 0,
 		startTime: 0,
-		executionIndex: 0,
 		source: [],
 		data: {
 			main: [

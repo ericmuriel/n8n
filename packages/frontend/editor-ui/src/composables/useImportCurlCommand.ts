@@ -5,9 +5,9 @@ import { toJsonObject as curlToJson, type JSONOutput } from 'curlconverter';
 
 import { CURL_IMPORT_NODES_PROTOCOLS, CURL_IMPORT_NOT_SUPPORTED_PROTOCOLS } from '@/constants';
 import { useToast } from '@/composables/useToast';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { importCurlEventBus } from '@/event-bus';
-import type { BaseTextKey } from '@n8n/i18n';
+import type { BaseTextKey } from '@/plugins/i18n';
 import { assert } from '@n8n/utils/assert';
 import type { CurlToJSONResponse } from '@/Interface';
 
@@ -70,18 +70,14 @@ type ContentTypes = (typeof SUPPORTED_CONTENT_TYPES)[number];
 
 const CONTENT_TYPE_KEY = 'content-type';
 
-const getContentTypeHeader = (headers: JSONOutput['headers']): string | undefined => {
-	return get(headers, CONTENT_TYPE_KEY) ?? undefined;
-};
-
 const isContentType = (headers: JSONOutput['headers'], contentType: ContentTypes): boolean => {
-	return getContentTypeHeader(headers) === contentType;
+	return get(headers, CONTENT_TYPE_KEY) === contentType;
 };
 
 const isJsonRequest = (curlJson: JSONOutput): boolean => {
 	if (isContentType(curlJson.headers, 'application/json')) return true;
 
-	if (curlJson.data && !getContentTypeHeader(curlJson.headers)) {
+	if (curlJson.data) {
 		const bodyKey = Object.keys(curlJson.data)[0];
 		try {
 			JSON.parse(bodyKey);
@@ -95,7 +91,7 @@ const isJsonRequest = (curlJson: JSONOutput): boolean => {
 
 const isFormUrlEncodedRequest = (curlJson: JSONOutput): boolean => {
 	if (isContentType(curlJson.headers, 'application/x-www-form-urlencoded')) return true;
-	if (!getContentTypeHeader(curlJson.headers) && curlJson.data && !curlJson.files) return true;
+	if (curlJson.data && !curlJson.files) return true;
 	return false;
 };
 
@@ -152,21 +148,8 @@ const extractQueries = (queries: JSONOutput['queries'] = {}): HttpNodeQueries =>
 	};
 };
 
-const keyValueBodyToNodeParameters = (body: JSONOutput['data'] = {}): Parameter[] | [] => {
-	return Object.entries(body).map(toKeyValueArray);
-};
-
 const jsonBodyToNodeParameters = (body: JSONOutput['data'] = {}): Parameter[] | [] => {
-	// curlconverter returns string if parameter includes special base64 characters like % or / or =
-	if (typeof body === 'string') {
-		// handles decoding percent-encoded characters like %3D to =
-		const parameters = new URLSearchParams(body);
-
-		return [...parameters.entries()].map((parameter) => {
-			return toKeyValueArray(parameter);
-		});
-	}
-	return keyValueBodyToNodeParameters(body);
+	return Object.entries(body).map(toKeyValueArray);
 };
 
 const multipartToNodeParameters = (
@@ -181,6 +164,10 @@ const multipartToNodeParameters = (
 			.map(toKeyValueArray)
 			.map((e) => ({ parameterType: 'formBinaryData', ...e })),
 	];
+};
+
+const keyValueBodyToNodeParameters = (body: JSONOutput['data'] = {}): Parameter[] | [] => {
+	return Object.entries(body).map(toKeyValueArray);
 };
 
 const lowerCaseContentTypeKey = (obj: JSONOutput['headers']): void => {
@@ -233,6 +220,7 @@ export const flattenObject = <T extends Record<string, unknown>>(obj: T, prefix 
 
 export const toHttpNodeParameters = (curlCommand: string): HttpNodeParameters => {
 	const curlJson = curlToJson(curlCommand);
+
 	const headers = curlJson.headers ?? {};
 
 	lowerCaseContentTypeKey(headers);
@@ -339,7 +327,7 @@ export const toHttpNodeParameters = (curlCommand: string): HttpNodeParameters =>
 			sendBody: true,
 			specifyBody: 'keypair',
 			bodyParameters: {
-				parameters: jsonBodyToNodeParameters(curlJson.data),
+				parameters: keyValueBodyToNodeParameters(curlJson.data),
 			},
 		});
 	} else if (isMultipartRequest(curlJson)) {

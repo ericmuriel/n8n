@@ -1,12 +1,5 @@
 import { stringify } from 'flatted';
-import pick from 'lodash/pick';
-import type {
-	IDataObject,
-	IRunData,
-	IRunExecutionData,
-	ITaskData,
-	ITaskDataConnections,
-} from 'n8n-workflow';
+import type { IDataObject, ITaskData, ITaskDataConnections } from 'n8n-workflow';
 import { nanoid } from 'nanoid';
 
 import { clickExecuteWorkflowButton } from '../composables/workflow';
@@ -23,8 +16,7 @@ export function createMockNodeExecutionData(
 ): Record<string, ITaskData> {
 	return {
 		[name]: {
-			startTime: Date.now(),
-			executionIndex: 0,
+			startTime: new Date().getTime(),
 			executionTime: 1,
 			executionStatus,
 			data: jsonData
@@ -60,28 +52,6 @@ export function runMockWorkflowExecution({
 	const workflowId = nanoid();
 	const executionId = Math.floor(Math.random() * 1_000_000).toString();
 
-	const resolvedRunData = runData.reduce<IRunData>((acc, nodeExecution) => {
-		const nodeName = Object.keys(nodeExecution)[0];
-		acc[nodeName] = [nodeExecution[nodeName]];
-		return acc;
-	}, {});
-
-	const executionData: IRunExecutionData = {
-		startData: {},
-		resultData: {
-			runData: resolvedRunData,
-			pinData: {},
-			lastNodeExecuted,
-		},
-		executionData: {
-			contextData: {},
-			nodeExecutionStack: [],
-			metadata: {},
-			waitingExecution: {},
-			waitingExecutionSource: {},
-		},
-	};
-
 	cy.intercept('POST', '/rest/workflows/**/run?**', {
 		statusCode: 201,
 		body: {
@@ -99,15 +69,7 @@ export function runMockWorkflowExecution({
 
 	cy.wait('@runWorkflow');
 
-	cy.push('executionStarted', {
-		workflowId,
-		executionId,
-		mode: 'manual',
-		startedAt: new Date(),
-		workflowName: '',
-		flattedRunData: '',
-	});
-
+	const resolvedRunData: Record<string, ITaskData> = {};
 	runData.forEach((nodeExecution) => {
 		const nodeName = Object.keys(nodeExecution)[0];
 		const nodeRunData = nodeExecution[nodeName];
@@ -115,19 +77,34 @@ export function runMockWorkflowExecution({
 		cy.push('nodeExecuteBefore', {
 			executionId,
 			nodeName,
-			data: pick(nodeRunData, ['startTime', 'executionIndex', 'source', 'hints']),
 		});
 		cy.push('nodeExecuteAfter', {
 			executionId,
 			nodeName,
 			data: nodeRunData,
 		});
+
+		resolvedRunData[nodeName] = nodeExecution[nodeName];
 	});
 
 	cy.push('executionFinished', {
 		executionId,
 		workflowId,
 		status: 'success',
-		rawData: stringify(executionData),
+		rawData: stringify({
+			startData: {},
+			resultData: {
+				runData,
+				pinData: {},
+				lastNodeExecuted,
+			},
+			executionData: {
+				contextData: {},
+				nodeExecutionStack: [],
+				metadata: {},
+				waitingExecution: {},
+				waitingExecutionSource: {},
+			},
+		}),
 	});
 }

@@ -295,7 +295,6 @@ describe('BuiltInsParser', () => {
 				'$thisRunIndex',
 				'$nodeVersion',
 				'$nodeId',
-				'$agentInfo',
 				'$webhookId',
 			]);
 		});

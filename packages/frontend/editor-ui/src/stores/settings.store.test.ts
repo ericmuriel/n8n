@@ -13,17 +13,23 @@ const { sessionStarted } = vi.hoisted(() => ({
 	sessionStarted: vi.fn(),
 }));
 
-vi.mock('@n8n/rest-api-client/api/settings', () => ({
+vi.mock('@/api/settings', () => ({
 	getSettings,
 }));
 
-vi.mock('@n8n/rest-api-client/api/events', () => ({
+vi.mock('@/api/events', () => ({
 	sessionStarted,
 }));
 
-vi.mock('@n8n/stores/useRootStore', () => ({
+vi.mock('@/stores/root.store', () => ({
 	useRootStore: vi.fn(() => ({
 		restApiContext: {},
+		setVersionCli: vi.fn(),
+	})),
+}));
+
+vi.mock('@/stores/root.store', () => ({
+	useRootStore: vi.fn(() => ({
 		setUrlBaseWebhook: vi.fn(),
 		setUrlBaseEditor: vi.fn(),
 		setEndpointForm: vi.fn(),
@@ -46,7 +52,7 @@ vi.mock('@n8n/stores/useRootStore', () => ({
 
 vi.mock('@/stores/versions.store', () => ({
 	useVersionsStore: vi.fn(() => ({
-		initialize: vi.fn(),
+		setVersionNotificationSettings: vi.fn(),
 	})),
 }));
 

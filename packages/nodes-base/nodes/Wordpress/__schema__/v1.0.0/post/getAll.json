@@ -132,6 +132,20 @@
                         }
                     }
                 },
+                "wp:featuredmedia": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "embeddable": {
+                                "type": "boolean"
+                            },
+                            "href": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
                 "wp:term": {
                     "type": "array",
                     "items": {
@@ -211,14 +225,6 @@
         "link": {
             "type": "string"
         },
-        "meta": {
-            "type": "object",
-            "properties": {
-                "footnotes": {
-                    "type": "string"
-                }
-            }
-        },
         "modified": {
             "type": "string"
         },
@@ -258,5 +264,5 @@
             "type": "string"
         }
     },
-    "version": 3
+    "version": 1
 }

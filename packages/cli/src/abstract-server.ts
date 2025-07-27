@@ -1,7 +1,4 @@
-import { inTest, inDevelopment, Logger } from '@n8n/backend-common';
 import { GlobalConfig } from '@n8n/config';
-import { DbConnection } from '@n8n/db';
-import { OnShutdown } from '@n8n/decorators';
 import { Container, Service } from '@n8n/di';
 import compression from 'compression';
 import express from 'express';
@@ -9,10 +6,12 @@ import { engine as expressHandlebars } from 'express-handlebars';
 import { readFile } from 'fs/promises';
 import type { Server } from 'http';
 import isbot from 'isbot';
+import { Logger } from 'n8n-core';
 
 import config from '@/config';
-import { N8N_VERSION, TEMPLATES_DIR } from '@/constants';
-import { ServiceUnavailableError } from '@/errors/response-errors/service-unavailable.error';
+import { N8N_VERSION, TEMPLATES_DIR, inDevelopment, inTest } from '@/constants';
+import * as Db from '@/db';
+import { OnShutdown } from '@/decorators/on-shutdown';
 import { ExternalHooks } from '@/external-hooks';
 import { rawBodyReader, bodyParser, corsMiddleware } from '@/middlewares';
 import { send, sendErrorResponse } from '@/response-helper';
@@ -21,6 +20,8 @@ import { TestWebhooks } from '@/webhooks/test-webhooks';
 import { WaitingForms } from '@/webhooks/waiting-forms';
 import { WaitingWebhooks } from '@/webhooks/waiting-webhooks';
 import { createWebhookHandlerFor } from '@/webhooks/webhook-request-handler';
+
+import { ServiceUnavailableError } from './errors/response-errors/service-unavailable.error';
 
 @Service()
 export abstract class AbstractServer {
@@ -33,8 +34,6 @@ export abstract class AbstractServer {
 	protected externalHooks: ExternalHooks;
 
 	protected globalConfig = Container.get(GlobalConfig);
-
-	protected dbConnection = Container.get(DbConnection);
 
 	protected sslKey: string;
 
@@ -54,10 +53,6 @@ export abstract class AbstractServer {
 
 	protected endpointWebhookWaiting: string;
 
-	protected endpointMcp: string;
-
-	protected endpointMcpTest: string;
-
 	protected webhooksEnabled = true;
 
 	protected testWebhooksEnabled = false;
@@ -67,30 +62,26 @@ export abstract class AbstractServer {
 	constructor() {
 		this.app = express();
 		this.app.disable('x-powered-by');
-		this.app.set('query parser', 'extended');
+
 		this.app.engine('handlebars', expressHandlebars({ defaultLayout: false }));
 		this.app.set('view engine', 'handlebars');
 		this.app.set('views', TEMPLATES_DIR);
 
-		const proxyHops = this.globalConfig.proxy_hops;
+		const proxyHops = config.getEnv('proxy_hops');
 		if (proxyHops > 0) this.app.set('trust proxy', proxyHops);
 
-		this.sslKey = this.globalConfig.ssl_key;
-		this.sslCert = this.globalConfig.ssl_cert;
+		this.sslKey = config.getEnv('ssl_key');
+		this.sslCert = config.getEnv('ssl_cert');
 
-		const { endpoints } = this.globalConfig;
-		this.restEndpoint = endpoints.rest;
+		this.restEndpoint = this.globalConfig.endpoints.rest;
 
-		this.endpointForm = endpoints.form;
-		this.endpointFormTest = endpoints.formTest;
-		this.endpointFormWaiting = endpoints.formWaiting;
+		this.endpointForm = this.globalConfig.endpoints.form;
+		this.endpointFormTest = this.globalConfig.endpoints.formTest;
+		this.endpointFormWaiting = this.globalConfig.endpoints.formWaiting;
 
-		this.endpointWebhook = endpoints.webhook;
-		this.endpointWebhookTest = endpoints.webhookTest;
-		this.endpointWebhookWaiting = endpoints.webhookWaiting;
-
-		this.endpointMcp = endpoints.mcp;
-		this.endpointMcpTest = endpoints.mcpTest;
+		this.endpointWebhook = this.globalConfig.endpoints.webhook;
+		this.endpointWebhookTest = this.globalConfig.endpoints.webhookTest;
+		this.endpointWebhookWaiting = this.globalConfig.endpoints.webhookWaiting;
 
 		this.logger = Container.get(Logger);
 	}
@@ -127,10 +118,8 @@ export abstract class AbstractServer {
 			res.send({ status: 'ok' });
 		});
 
-		const { connectionState } = this.dbConnection;
-
 		this.app.get('/healthz/readiness', (_req, res) => {
-			const { connected, migrated } = connectionState;
+			const { connected, migrated } = Db.connectionState;
 			if (connected && migrated) {
 				res.status(200).send({ status: 'ok' });
 			} else {
@@ -138,6 +127,7 @@ export abstract class AbstractServer {
 			}
 		});
 
+		const { connectionState } = Db;
 		this.app.use((_req, res, next) => {
 			if (connectionState.connected) {
 				if (connectionState.migrated) next();
@@ -168,24 +158,11 @@ export abstract class AbstractServer {
 
 		this.server.on('error', (error: Error & { code: string }) => {
 			if (error.code === 'EADDRINUSE') {
-				// EADDRINUSE is thrown when the port is already in use
 				this.logger.info(
 					`n8n's port ${port} is already in use. Do you have another instance of n8n running already?`,
 				);
-			} else if (error.code === 'EACCES') {
-				// EACCES is thrown when the process is not allowed to use the port
-				// This can happen if the port is below 1024 and the process is not run as root
-				// or when the port is reserved by the system, for example Windows reserves random ports
-				// for NAT for Hyper-V and other virtualization software.
-				this.logger.info(
-					`n8n does not have permission to use port ${port}. Please run n8n with a different port.`,
-				);
-			} else {
-				// Other errors are unexpected and should be logged
-				this.logger.error('n8n webserver failed, exiting', { error });
+				process.exit(1);
 			}
-			// we always exit on error, so that n8n does not run in an inconsistent state
-			process.exit(1);
 		});
 
 		await new Promise<void>((resolve) => this.server.listen(port, address, () => resolve()));
@@ -216,18 +193,15 @@ export abstract class AbstractServer {
 
 			// Register a handler for waiting forms
 			this.app.all(
-				`/${this.endpointFormWaiting}/:path{/:suffix}`,
+				`/${this.endpointFormWaiting}/:path/{:suffix}`,
 				createWebhookHandlerFor(Container.get(WaitingForms)),
 			);
 
 			// Register a handler for waiting webhooks
 			this.app.all(
-				`/${this.endpointWebhookWaiting}/:path{/:suffix}`,
+				`/${this.endpointWebhookWaiting}/:path/{:suffix}`,
 				createWebhookHandlerFor(Container.get(WaitingWebhooks)),
 			);
-
-			// Register a handler for live MCP servers
-			this.app.all(`/${this.endpointMcp}/*path`, liveWebhooksRequestHandler);
 		}
 
 		if (this.testWebhooksEnabled) {
@@ -236,9 +210,6 @@ export abstract class AbstractServer {
 			// Register a handler
 			this.app.all(`/${this.endpointFormTest}/*path`, testWebhooksRequestHandler);
 			this.app.all(`/${this.endpointWebhookTest}/*path`, testWebhooksRequestHandler);
-
-			// Register a handler for test MCP servers
-			this.app.all(`/${this.endpointMcpTest}/*path`, testWebhooksRequestHandler);
 		}
 
 		// Block bots from scanning the application
@@ -273,7 +244,7 @@ export abstract class AbstractServer {
 		if (!inTest) {
 			this.logger.info(`Version: ${N8N_VERSION}`);
 
-			const { defaultLocale } = this.globalConfig;
+			const defaultLocale = config.getEnv('defaultLocale');
 			if (defaultLocale !== 'en') {
 				this.logger.info(`Locale: ${defaultLocale}`);
 			}

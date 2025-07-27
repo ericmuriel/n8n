@@ -1,21 +1,24 @@
-import { Logger } from '@n8n/backend-common';
-import type { CreateExecutionPayload, IExecutionDb } from '@n8n/db';
-import { ExecutionRepository } from '@n8n/db';
 import { Service } from '@n8n/di';
+import { Logger } from 'n8n-core';
 import type {
 	IDeferredPromise,
 	IExecuteResponsePromiseData,
 	IRun,
 	ExecutionStatus,
 	IWorkflowExecutionDataProcess,
-	StructuredChunk,
 } from 'n8n-workflow';
 import { createDeferredPromise, ExecutionCancelledError, sleep } from 'n8n-workflow';
 import { strict as assert } from 'node:assert';
 import type PCancelable from 'p-cancelable';
 
+import { ExecutionRepository } from '@/databases/repositories/execution.repository';
 import { ExecutionNotFoundError } from '@/errors/execution-not-found-error';
-import type { IExecutingWorkflowData, IExecutionsCurrentSummary } from '@/interfaces';
+import type {
+	CreateExecutionPayload,
+	IExecutingWorkflowData,
+	IExecutionDb,
+	IExecutionsCurrentSummary,
+} from '@/interfaces';
 import { isWorkflowIdValid } from '@/utils';
 
 import { ConcurrencyControlService } from './concurrency/concurrency-control.service';
@@ -98,7 +101,6 @@ export class ActiveExecutions {
 			postExecutePromise,
 			status: executionStatus,
 			responsePromise: resumingExecution?.responsePromise,
-			httpResponse: executionData.httpResponse ?? undefined,
 		};
 		this.activeExecutions[executionId] = execution;
 
@@ -144,15 +146,6 @@ export class ActiveExecutions {
 		execution?.responsePromise?.resolve(response);
 	}
 
-	/** Used for sending a chunk to a streaming response */
-	sendChunk(executionId: string, chunkText: StructuredChunk): void {
-		const execution = this.activeExecutions[executionId];
-		if (execution?.httpResponse) {
-			execution?.httpResponse.write(JSON.stringify(chunkText) + '\n');
-			execution?.httpResponse.flush();
-		}
-	}
-
 	/** Cancel the execution promise and reject its post-execution promise. */
 	stopExecution(executionId: string): void {
 		const execution = this.activeExecutions[executionId];
@@ -177,20 +170,6 @@ export class ActiveExecutions {
 	finalizeExecution(executionId: string, fullRunData?: IRun) {
 		if (!this.has(executionId)) return;
 		const execution = this.getExecutionOrFail(executionId);
-
-		// Close response if it exists (for streaming responses)
-		if (execution.executionData.httpResponse) {
-			try {
-				this.logger.debug('Closing response for execution', { executionId });
-				execution.executionData.httpResponse.end();
-			} catch (error) {
-				this.logger.error('Error closing streaming response', {
-					executionId,
-					error: (error as Error).message,
-				});
-			}
-		}
-
 		execution.postExecutePromise.resolve(fullRunData);
 		this.logger.debug('Execution finalized', { executionId });
 	}

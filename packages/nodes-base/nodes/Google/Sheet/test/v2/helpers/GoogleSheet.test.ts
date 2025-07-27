@@ -100,39 +100,17 @@ describe('GoogleSheet', () => {
 				{ name: 'Jane', age: '25' },
 			]);
 		});
-
-		it('should handle empty columns when includeHeadersWithEmptyCells is true', () => {
-			const data = [
-				['name', 'age'],
-				['John', '30'],
-				['MARY', ''],
-				['Jane', '25'],
-			];
-			const result = googleSheet.convertSheetDataArrayToObjectArray(
-				data,
-				1,
-				['name', 'age'],
-				false,
-				true,
-			);
-
-			expect(result).toEqual([
-				{ name: 'John', age: '30' },
-				{ name: 'MARY', age: '' },
-				{ name: 'Jane', age: '25' },
-			]);
-		});
 	});
 
 	describe('lookupValues', () => {
-		const inputData = [
-			['name', 'age', 'city'],
-			['John', '30', 'NY'],
-			['Jane', '25', 'LA'],
-			['Bob', '30', 'SF'],
-		];
-
 		it('should find matching rows with OR combination', async () => {
+			const inputData = [
+				['name', 'age', 'city'],
+				['John', '30', 'NY'],
+				['Jane', '25', 'LA'],
+				['Bob', '30', 'SF'],
+			];
+
 			const lookupValues = [{ lookupColumn: 'age', lookupValue: '30' }];
 
 			const result = await googleSheet.lookupValues({
@@ -142,7 +120,6 @@ describe('GoogleSheet', () => {
 				lookupValues,
 				returnAllMatches: true,
 				combineFilters: 'OR',
-				nodeVersion: 4.5,
 			});
 
 			expect(result).toEqual([
@@ -151,46 +128,14 @@ describe('GoogleSheet', () => {
 			]);
 		});
 
-		it('should find matching rows with OR combination and returnAllMatches is falsy at version 4.5', async () => {
-			const lookupValues = [
-				{ lookupColumn: 'age', lookupValue: '30' },
-				{ lookupColumn: 'name', lookupValue: 'Jane' },
-			];
-
-			const result = await googleSheet.lookupValues({
-				inputData,
-				keyRowIndex: 0,
-				dataStartRowIndex: 1,
-				lookupValues,
-				combineFilters: 'OR',
-				nodeVersion: 4.5,
-			});
-
-			expect(result).toEqual([
-				{ name: 'John', age: '30', city: 'NY' },
-				{ name: 'Jane', age: '25', city: 'LA' },
-			]);
-		});
-
-		it('should find matching rows with OR combination and returnAllMatches is falsy at version 4.6', async () => {
-			const lookupValues = [
-				{ lookupColumn: 'age', lookupValue: '30' },
-				{ lookupColumn: 'name', lookupValue: 'Jane' },
-			];
-
-			const result = await googleSheet.lookupValues({
-				inputData,
-				keyRowIndex: 0,
-				dataStartRowIndex: 1,
-				lookupValues,
-				combineFilters: 'OR',
-				nodeVersion: 4.6,
-			});
-
-			expect(result).toEqual([{ name: 'John', age: '30', city: 'NY' }]);
-		});
-
 		it('should find matching rows with AND combination', async () => {
+			const inputData = [
+				['name', 'age', 'city'],
+				['John', '30', 'NY'],
+				['Jane', '25', 'LA'],
+				['Bob', '30', 'SF'],
+			];
+
 			const lookupValues = [
 				{ lookupColumn: 'age', lookupValue: '30' },
 				{ lookupColumn: 'city', lookupValue: 'NY' },
@@ -203,22 +148,21 @@ describe('GoogleSheet', () => {
 				lookupValues,
 				returnAllMatches: true,
 				combineFilters: 'AND',
-				nodeVersion: 4.5,
 			});
 
 			expect(result).toEqual([{ name: 'John', age: '30', city: 'NY' }]);
 		});
 
 		it('should throw error for invalid key row', async () => {
+			const inputData = [['name', 'age']];
 			const lookupValues = [{ lookupColumn: 'age', lookupValue: '30' }];
 
 			await expect(
 				googleSheet.lookupValues({
-					inputData: [['name', 'age']],
+					inputData,
 					keyRowIndex: -1,
 					dataStartRowIndex: 1,
 					lookupValues,
-					nodeVersion: 4.5,
 				}),
 			).rejects.toThrow('The key row does not exist');
 		});

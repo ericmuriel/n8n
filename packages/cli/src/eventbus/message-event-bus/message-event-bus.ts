@@ -1,7 +1,4 @@
-import { Logger } from '@n8n/backend-common';
 import { GlobalConfig } from '@n8n/config';
-import { EventDestinationsRepository, ExecutionRepository, WorkflowRepository } from '@n8n/db';
-import { OnPubSubEvent } from '@n8n/decorators';
 import { Service } from '@n8n/di';
 // eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
 import type { DeleteResult } from '@n8n/typeorm';
@@ -9,9 +6,13 @@ import type { DeleteResult } from '@n8n/typeorm';
 import { In } from '@n8n/typeorm';
 import EventEmitter from 'events';
 import uniqby from 'lodash/uniqBy';
+import { Logger } from 'n8n-core';
 import type { MessageEventBusDestinationOptions } from 'n8n-workflow';
 
 import config from '@/config';
+import { EventDestinationsRepository } from '@/databases/repositories/event-destinations.repository';
+import { ExecutionRepository } from '@/databases/repositories/execution.repository';
+import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
 import { License } from '@/license';
 import { Publisher } from '@/scaling/pubsub/publisher.service';
 
@@ -32,10 +33,6 @@ import {
 } from '../event-message-classes/event-message-generic';
 import type { EventMessageNodeOptions } from '../event-message-classes/event-message-node';
 import { EventMessageNode } from '../event-message-classes/event-message-node';
-import type { EventMessageQueueOptions } from '../event-message-classes/event-message-queue';
-import { EventMessageQueue } from '../event-message-classes/event-message-queue';
-import type { EventMessageRunnerOptions } from '../event-message-classes/event-message-runner';
-import { EventMessageRunner } from '../event-message-classes/event-message-runner';
 import type { EventMessageWorkflowOptions } from '../event-message-classes/event-message-workflow';
 import { EventMessageWorkflow } from '../event-message-classes/event-message-workflow';
 import { messageEventBusDestinationFromDb } from '../message-event-bus-destination/message-event-bus-destination-from-db';
@@ -66,7 +63,7 @@ export class MessageEventBus extends EventEmitter {
 		[key: string]: MessageEventBusDestination;
 	} = {};
 
-	private pushIntervalTimer: NodeJS.Timeout;
+	private pushIntervalTimer: NodeJS.Timer;
 
 	constructor(
 		private readonly logger: Logger,
@@ -162,6 +159,8 @@ export class MessageEventBus extends EventEmitter {
 			}
 
 			if (unfinishedExecutionIds.length > 0) {
+				this.logger.warn(`Found unfinished executions: ${unfinishedExecutionIds.join(', ')}`);
+				this.logger.info('This could be due to a crash of an active workflow or a restart of n8n.');
 				const activeWorkflows = await this.workflowRepository.find({
 					where: { active: true },
 					select: ['id', 'name'],
@@ -183,25 +182,11 @@ export class MessageEventBus extends EventEmitter {
 				} else {
 					// start actual recovery process and write recovery process flag file
 					this.logWriter?.startRecoveryProcess();
-					const recoveredIds: string[] = [];
-
 					for (const executionId of unfinishedExecutionIds) {
 						const logMesssages = unsentAndUnfinished.unfinishedExecutions[executionId];
-						const recoveredExecution = await this.recoveryService.recoverFromLogs(
-							executionId,
-							logMesssages ?? [],
-						);
-						if (recoveredExecution) recoveredIds.push(executionId);
-					}
-
-					if (recoveredIds.length > 0) {
-						this.logger.warn(`Found unfinished executions: ${recoveredIds.join(', ')}`);
-						this.logger.info(
-							'This could be due to a crash of an active workflow or a restart of n8n',
-						);
+						await this.recoveryService.recoverFromLogs(executionId, logMesssages ?? []);
 					}
 				}
-
 				// remove the recovery process flag file
 				this.logWriter?.endRecoveryProcess();
 			}
@@ -240,20 +225,20 @@ export class MessageEventBus extends EventEmitter {
 		return result.sort((a, b) => (a.__type ?? '').localeCompare(b.__type ?? ''));
 	}
 
-	async removeDestination(id: string, notifyWorkers: boolean = true) {
+	async removeDestination(
+		id: string,
+		notifyWorkers: boolean = true,
+	): Promise<DeleteResult | undefined> {
+		let result;
 		if (Object.keys(this.destinations).includes(id)) {
 			await this.destinations[id].close();
+			result = await this.destinations[id].deleteFromDb();
 			delete this.destinations[id];
 		}
 		if (notifyWorkers) {
 			void this.publisher.publishCommand({ command: 'restart-event-bus' });
 		}
-	}
-
-	async deleteDestination(id: string): Promise<DeleteResult | undefined> {
-		return await this.eventDestinationsRepository.delete({
-			id,
-		});
+		return result;
 	}
 
 	private async trySendingUnsent(msgs?: EventMessageTypes[]) {
@@ -280,7 +265,6 @@ export class MessageEventBus extends EventEmitter {
 		this.logger.debug('EventBus shut down.');
 	}
 
-	@OnPubSubEvent('restart-event-bus')
 	async restart() {
 		await this.close();
 		await this.initialize({ skipRecoveryPass: true });
@@ -422,13 +406,5 @@ export class MessageEventBus extends EventEmitter {
 
 	async sendExecutionEvent(options: EventMessageExecutionOptions) {
 		await this.send(new EventMessageExecution(options));
-	}
-
-	async sendRunnerEvent(options: EventMessageRunnerOptions) {
-		await this.send(new EventMessageRunner(options));
-	}
-
-	async sendQueueEvent(options: EventMessageQueueOptions) {
-		await this.send(new EventMessageQueue(options));
 	}
 }

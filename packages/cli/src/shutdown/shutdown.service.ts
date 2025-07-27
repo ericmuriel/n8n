@@ -1,9 +1,17 @@
-import { Logger } from '@n8n/backend-common';
-import type { ShutdownHandler } from '@n8n/decorators';
-import { ShutdownMetadata } from '@n8n/decorators';
 import { Container, Service } from '@n8n/di';
-import { ErrorReporter } from 'n8n-core';
+import { type Class, ErrorReporter } from 'n8n-core';
+import { Logger } from 'n8n-core';
 import { assert, UnexpectedError, UserError } from 'n8n-workflow';
+
+import { LOWEST_SHUTDOWN_PRIORITY, HIGHEST_SHUTDOWN_PRIORITY } from '@/constants';
+
+type HandlerFn = () => Promise<void> | void;
+export type ServiceClass = Class<Record<string, HandlerFn>>;
+
+export interface ShutdownHandler {
+	serviceClass: ServiceClass;
+	methodName: string;
+}
 
 /** Error reported when a listener fails to shutdown gracefully */
 export class ComponentShutdownError extends UnexpectedError {
@@ -18,22 +26,33 @@ export class ComponentShutdownError extends UnexpectedError {
 /** Service responsible for orchestrating a graceful shutdown of the application */
 @Service()
 export class ShutdownService {
+	private readonly handlersByPriority: ShutdownHandler[][] = [];
+
 	private shutdownPromise: Promise<void> | undefined;
 
 	constructor(
 		private readonly logger: Logger,
 		private readonly errorReporter: ErrorReporter,
-		private readonly shutdownMetadata: ShutdownMetadata,
 	) {}
 
 	/** Registers given listener to be notified when the application is shutting down */
 	register(priority: number, handler: ShutdownHandler) {
-		this.shutdownMetadata.register(priority, handler);
+		if (priority < LOWEST_SHUTDOWN_PRIORITY || priority > HIGHEST_SHUTDOWN_PRIORITY) {
+			throw new UserError(
+				`Invalid shutdown priority. Please set it between ${LOWEST_SHUTDOWN_PRIORITY} and ${HIGHEST_SHUTDOWN_PRIORITY}.`,
+				{ extra: { priority } },
+			);
+		}
+
+		if (!this.handlersByPriority[priority]) {
+			this.handlersByPriority[priority] = [];
+		}
+		this.handlersByPriority[priority].push(handler);
 	}
 
 	/** Validates that all the registered shutdown handlers are properly configured */
 	validate() {
-		const handlers = this.shutdownMetadata.getHandlersByPriority().flat();
+		const handlers = this.handlersByPriority.flat();
 
 		for (const { serviceClass, methodName } of handlers) {
 			if (!Container.has(serviceClass)) {
@@ -74,8 +93,7 @@ export class ShutdownService {
 	}
 
 	private async startShutdown() {
-		const handlers = Object.values(this.shutdownMetadata.getHandlersByPriority()).reverse();
-
+		const handlers = Object.values(this.handlersByPriority).reverse();
 		for (const handlerGroup of handlers) {
 			await Promise.allSettled(
 				handlerGroup.map(async (handler) => await this.shutdownComponent(handler)),

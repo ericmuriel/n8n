@@ -20,9 +20,9 @@ export class MicrosoftEntra implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Interact with Microsoft Entra ID API',
+		description: 'Interact with Micosoft Entra ID API',
 		defaults: {
-			name: 'Microsoft Entra ID',
+			name: 'Micosoft Entra ID',
 		},
 		usableAsTool: true,
 		inputs: [NodeConnectionTypes.Main],

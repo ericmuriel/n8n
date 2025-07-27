@@ -1,16 +1,15 @@
-import { mockInstance } from '@n8n/backend-test-utils';
-import type { ExecutionEntity, ExecutionData } from '@n8n/db';
-import {
-	ExecutionDataRepository,
-	ExecutionMetadataRepository,
-	ExecutionRepository,
-	AnnotationTagRepository,
-} from '@n8n/db';
 import { Container } from '@n8n/di';
 import type { AnnotationVote, IWorkflowBase } from 'n8n-workflow';
 
+import type { ExecutionData } from '@/databases/entities/execution-data';
+import type { ExecutionEntity } from '@/databases/entities/execution-entity';
+import { AnnotationTagRepository } from '@/databases/repositories/annotation-tag.repository.ee';
+import { ExecutionDataRepository } from '@/databases/repositories/execution-data.repository';
+import { ExecutionMetadataRepository } from '@/databases/repositories/execution-metadata.repository';
+import { ExecutionRepository } from '@/databases/repositories/execution.repository';
 import { ExecutionService } from '@/executions/execution.service';
 import { Telemetry } from '@/telemetry';
+import { mockInstance } from '@test/mocking';
 
 mockInstance(Telemetry);
 
@@ -33,24 +32,14 @@ export async function createExecution(
 	>,
 	workflow: IWorkflowBase,
 ) {
-	const {
-		data,
-		finished,
-		mode,
-		startedAt,
-		stoppedAt,
-		waitTill,
-		status,
-		deletedAt,
-		metadata,
-		createdAt,
-	} = attributes;
+	const { data, finished, mode, startedAt, stoppedAt, waitTill, status, deletedAt, metadata } =
+		attributes;
 
 	const execution = await Container.get(ExecutionRepository).save({
 		finished: finished ?? true,
 		mode: mode ?? 'manual',
-		createdAt: createdAt ?? new Date(),
-		startedAt: startedAt === undefined ? new Date() : startedAt,
+		createdAt: new Date(),
+		startedAt: startedAt ?? new Date(),
 		...(workflow !== undefined && { workflowId: workflow.id }),
 		stoppedAt: stoppedAt ?? new Date(),
 		waitTill: waitTill ?? null,

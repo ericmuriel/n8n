@@ -2,7 +2,7 @@
 	"startData": {},
 	"resultData": {
 		"runData": {
-			"When clicking ‘Execute workflow’": [
+			"When clicking ‘Test workflow’": [
 				{
 					"hints": [],
 					"startTime": 1731079118048,
@@ -48,7 +48,7 @@
 					"executionTime": 0,
 					"source": [
 						{
-							"previousNode": "When clicking ‘Execute workflow’"
+							"previousNode": "When clicking ‘Test workflow’"
 						}
 					],
 					"executionStatus": "success",
@@ -132,7 +132,7 @@
 			]
 		},
 		"pinData": {
-			"When clicking ‘Execute workflow’": [
+			"When clicking ‘Test workflow’": [
 				{
 					"json": {
 						"query": "First item"

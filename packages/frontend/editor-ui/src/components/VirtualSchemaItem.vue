@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { N8nTooltip } from '@n8n/design-system';
 import TextWithHighlights from './TextWithHighlights.vue';
-import { type IconName } from '@n8n/design-system/components/N8nIcon/icons';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 type Props = {
 	title?: string;
@@ -11,7 +11,7 @@ type Props = {
 	expression?: string;
 	value?: string;
 	id: string;
-	icon: IconName;
+	icon: string;
 	collapsable?: boolean;
 	nodeName?: string;
 	nodeType?: string;
@@ -22,7 +22,6 @@ type Props = {
 	preview?: boolean;
 	locked?: boolean;
 	lockedTooltip?: string;
-	runIndex?: number;
 };
 
 const props = defineProps<Props>();
@@ -36,7 +35,7 @@ const emit = defineEmits<{
 	<div class="schema-item" :class="{ draggable }" data-test-id="run-data-schema-item">
 		<div class="toggle-container">
 			<div v-if="collapsable" class="toggle" @click="emit('click')">
-				<N8nIcon icon="chevron-down" :class="{ 'collapse-icon': true, collapsed }" />
+				<FontAwesomeIcon icon="angle-down" :class="{ 'collapse-icon': true, collapsed }" />
 			</div>
 		</div>
 		<div
@@ -49,7 +48,6 @@ const emit = defineEmits<{
 			:data-node-type="nodeType"
 			:data-target="!locked && 'mappable'"
 			:data-node-name="nodeName"
-			:data-run-index="runIndex"
 			class="pill"
 			:class="{
 				'pill--highlight': highlight,
@@ -58,7 +56,7 @@ const emit = defineEmits<{
 			}"
 			data-test-id="run-data-schema-node-name"
 		>
-			<N8nIcon class="type-icon" :icon="icon" size="small" />
+			<FontAwesomeIcon class="type-icon" :icon size="sm" />
 			<TextWithHighlights class="title" :content="title" :search="props.search" />
 		</div>
 

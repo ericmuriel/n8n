@@ -1,14 +1,11 @@
-import {
-	createTeamProject,
-	createWorkflowWithTrigger,
-	testDb,
-	mockInstance,
-} from '@n8n/backend-test-utils';
-import type { User } from '@n8n/db';
-
+import type { User } from '@/databases/entities/user';
 import { Telemetry } from '@/telemetry';
+import { mockInstance } from '@test/mocking';
 
+import { createTeamProject } from '../shared/db/projects';
 import { createUser } from '../shared/db/users';
+import { createWorkflowWithTrigger } from '../shared/db/workflows';
+import * as testDb from '../shared/test-db';
 import * as utils from '../shared/utils/';
 
 mockInstance(Telemetry);
@@ -27,7 +24,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-	await testDb.truncate(['WorkflowEntity', 'SharedWorkflow']);
+	await testDb.truncate(['Workflow', 'SharedWorkflow']);
 });
 
 describe('PUT /:workflowId/transfer', () => {

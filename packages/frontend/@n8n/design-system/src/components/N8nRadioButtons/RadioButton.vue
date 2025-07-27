@@ -4,18 +4,14 @@ interface RadioButtonProps {
 	value: string;
 	active?: boolean;
 	disabled?: boolean;
-	size?: 'small' | 'small-medium' | 'medium';
-	square?: boolean;
+	size?: 'small' | 'medium';
 }
 
 withDefaults(defineProps<RadioButtonProps>(), {
 	active: false,
 	disabled: false,
 	size: 'medium',
-	square: false,
 });
-
-defineSlots<{ default?: {} }>();
 </script>
 
 <template>
@@ -26,7 +22,6 @@ defineSlots<{ default?: {} }>();
 			'n8n-radio-button': true,
 			[$style.container]: true,
 			[$style.hoverable]: !disabled,
-			[$style.square]: square,
 		}"
 		:aria-checked="active"
 	>
@@ -39,9 +34,7 @@ defineSlots<{ default?: {} }>();
 			}"
 			:data-test-id="`radio-button-${value}`"
 		>
-			<slot>
-				{{ label }}
-			</slot>
+			{{ label }}
 		</div>
 	</label>
 </template>
@@ -75,12 +68,6 @@ defineSlots<{ default?: {} }>();
 	transition: background-color 0.2s ease;
 	cursor: pointer;
 	user-select: none;
-
-	.square & {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
 }
 
 .disabled {
@@ -91,33 +78,12 @@ defineSlots<{ default?: {} }>();
 	height: 26px;
 	font-size: var(--font-size-2xs);
 	padding: 0 var(--spacing-xs);
-
-	.square & {
-		width: 26px;
-		padding: 0;
-	}
-}
-
-.small-medium {
-	height: 22px;
-	font-size: var(--font-size-3xs);
-	padding: 0 var(--spacing-2xs);
-
-	.square & {
-		width: 22px;
-		padding: 0;
-	}
 }
 
 .small {
 	font-size: var(--font-size-3xs);
 	height: 15px;
 	padding: 0 var(--spacing-4xs);
-
-	.square & {
-		width: 15px;
-		padding: 0;
-	}
 }
 
 .active {

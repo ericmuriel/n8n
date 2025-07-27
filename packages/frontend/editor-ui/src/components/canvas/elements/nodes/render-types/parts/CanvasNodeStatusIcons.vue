@@ -1,21 +1,14 @@
 <script setup lang="ts">
-import { computed, useCssModule } from 'vue';
+import { computed } from 'vue';
 import TitledList from '@/components/TitledList.vue';
 import { useNodeHelpers } from '@/composables/useNodeHelpers';
 import { useCanvasNode } from '@/composables/useCanvasNode';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { CanvasNodeDirtiness, CanvasNodeRenderType } from '@/types';
 import { N8nTooltip } from '@n8n/design-system';
-import { useCanvas } from '@/composables/useCanvas';
-
-const { size = 'medium', spinnerScrim = false } = defineProps<{
-	size?: 'small' | 'medium';
-	spinnerScrim?: boolean;
-}>();
 
 const nodeHelpers = useNodeHelpers();
 const i18n = useI18n();
-const $style = useCssModule();
 
 const {
 	hasPinnedData,
@@ -23,75 +16,61 @@ const {
 	hasIssues,
 	executionStatus,
 	executionWaiting,
-	executionWaitingForNext,
-	executionRunning,
+	executionRunningThrottled,
 	hasRunData,
 	runDataIterations,
 	isDisabled,
 	render,
 } = useCanvasNode();
-const { isExecuting } = useCanvas();
 
 const hideNodeIssues = computed(() => false); // @TODO Implement this
 const dirtiness = computed(() =>
 	render.value.type === CanvasNodeRenderType.Default ? render.value.options.dirtiness : undefined,
 );
-
-const isNodeExecuting = computed(() => {
-	if (!isExecuting.value) return false;
-
-	return (
-		executionRunning.value || executionWaitingForNext.value || executionStatus.value === 'running' // eslint-disable-line @typescript-eslint/prefer-nullish-coalescing
-	);
-});
-const commonClasses = computed(() => [$style.status, spinnerScrim ? $style.spinnerScrim : '']);
 </script>
 
 <template>
-	<div v-if="isDisabled" :class="[...commonClasses, $style.disabled]">
-		<N8nIcon icon="power" :size="size" />
-	</div>
 	<div
-		v-else-if="hasIssues && !hideNodeIssues"
-		:class="[...commonClasses, $style.issues]"
+		v-if="hasIssues && !hideNodeIssues"
+		:class="[$style.status, $style.issues]"
 		data-test-id="node-issues"
 	>
 		<N8nTooltip :show-after="500" placement="bottom">
 			<template #content>
 				<TitledList :title="`${i18n.baseText('node.issues')}:`" :items="issues" />
 			</template>
-			<N8nIcon icon="triangle-alert" :size="size" />
+			<FontAwesomeIcon icon="exclamation-triangle" />
 		</N8nTooltip>
 	</div>
 	<div v-else-if="executionWaiting || executionStatus === 'waiting'">
-		<div :class="[...commonClasses, $style.waiting]">
+		<div :class="[$style.status, $style.waiting]">
 			<N8nTooltip placement="bottom">
 				<template #content>
 					<div v-text="executionWaiting"></div>
 				</template>
-				<N8nIcon icon="clock" :size="size" />
+				<FontAwesomeIcon icon="clock" />
 			</N8nTooltip>
 		</div>
-		<div :class="[...commonClasses, $style['node-waiting-spinner']]">
-			<N8nIcon icon="refresh-cw" spin />
+		<div :class="[$style.status, $style['node-waiting-spinner']]">
+			<FontAwesomeIcon icon="sync-alt" spin />
 		</div>
+	</div>
+	<div
+		v-else-if="hasPinnedData && !nodeHelpers.isProductionExecutionPreview.value && !isDisabled"
+		data-test-id="canvas-node-status-pinned"
+		:class="[$style.status, $style.pinnedData]"
+	>
+		<FontAwesomeIcon icon="thumbtack" />
 	</div>
 	<div v-else-if="executionStatus === 'unknown'">
 		<!-- Do nothing, unknown means the node never executed -->
 	</div>
 	<div
-		v-else-if="isNodeExecuting"
+		v-else-if="executionRunningThrottled || executionStatus === 'running'"
 		data-test-id="canvas-node-status-running"
-		:class="[...commonClasses, $style.running]"
+		:class="[$style.status, $style.running]"
 	>
-		<N8nIcon icon="refresh-cw" spin />
-	</div>
-	<div
-		v-else-if="hasPinnedData && !nodeHelpers.isProductionExecutionPreview.value"
-		data-test-id="canvas-node-status-pinned"
-		:class="[...commonClasses, $style.pinnedData]"
-	>
-		<N8nIcon icon="pin" :size="size" />
+		<FontAwesomeIcon icon="sync-alt" spin />
 	</div>
 	<div v-else-if="dirtiness !== undefined">
 		<N8nTooltip :show-after="500" placement="bottom">
@@ -104,8 +83,8 @@ const commonClasses = computed(() => [$style.status, spinnerScrim ? $style.spinn
 					)
 				}}
 			</template>
-			<div data-test-id="canvas-node-status-warning" :class="[...commonClasses, $style.warning]">
-				<N8nIcon icon="triangle" :size="size" />
+			<div data-test-id="canvas-node-status-warning" :class="[$style.status, $style.warning]">
+				<FontAwesomeIcon icon="triangle" />
 				<span v-if="runDataIterations > 1" :class="$style.count"> {{ runDataIterations }}</span>
 			</div>
 		</N8nTooltip>
@@ -113,9 +92,9 @@ const commonClasses = computed(() => [$style.status, spinnerScrim ? $style.spinn
 	<div
 		v-else-if="hasRunData"
 		data-test-id="canvas-node-status-success"
-		:class="[...commonClasses, $style.runData]"
+		:class="[$style.status, $style.runData]"
 	>
-		<N8nIcon icon="check" :size="size" />
+		<FontAwesomeIcon icon="check" />
 		<span v-if="runDataIterations > 1" :class="$style.count"> {{ runDataIterations }}</span>
 	</div>
 </template>
@@ -140,25 +119,26 @@ const commonClasses = computed(() => [$style.status, spinnerScrim ? $style.spinn
 	color: var(--color-secondary);
 }
 
-.node-waiting-spinner,
 .running {
-	width: 100%;
-	height: 100%;
+	width: calc(100% - 2 * var(--canvas-node--status-icons-offset));
+	height: calc(100% - 2 * var(--canvas-node--status-icons-offset));
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-size: 3.75em;
 	color: hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.7);
+}
+.node-waiting-spinner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 3.75em;
+	color: hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.7);
+	width: 100%;
+	height: 100%;
 	position: absolute;
-	left: 0;
-	top: 0;
-	padding: var(--canvas-node--status-icons-offset);
-
-	&.spinnerScrim {
-		z-index: 10;
-		background-color: rgba(255, 255, 255, 0.82);
-		border-radius: var(--border-radius-large);
-	}
+	left: -34px;
+	top: -34px;
 }
 
 .issues {
@@ -172,9 +152,5 @@ const commonClasses = computed(() => [$style.status, spinnerScrim ? $style.spinn
 
 .warning {
 	color: var(--color-warning);
-}
-
-.disabled {
-	color: var(--color-foreground-xdark);
 }
 </style>

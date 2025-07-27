@@ -1,9 +1,4 @@
-import { z } from 'zod';
-
 import { Config, Env, Nested } from '../decorators';
-
-const dbLoggingOptionsSchema = z.enum(['query', 'error', 'schema', 'warn', 'info', 'log', 'all']);
-type DbLoggingOptions = z.infer<typeof dbLoggingOptionsSchema>;
 
 @Config
 class LoggingConfig {
@@ -14,8 +9,8 @@ class LoggingConfig {
 	/**
 	 * Database logging level. Requires `DB_LOGGING_MAX_EXECUTION_TIME` to be higher than `0`.
 	 */
-	@Env('DB_LOGGING_OPTIONS', dbLoggingOptionsSchema)
-	options: DbLoggingOptions = 'error';
+	@Env('DB_LOGGING_OPTIONS')
+	options: 'query' | 'error' | 'schema' | 'warn' | 'info' | 'log' | 'all' = 'error';
 
 	/**
 	 * Only queries that exceed this time (ms) will be logged. Set `0` to disable.
@@ -84,10 +79,6 @@ class PostgresConfig {
 	@Env('DB_POSTGRESDB_CONNECTION_TIMEOUT')
 	connectionTimeoutMs: number = 20_000;
 
-	/** Postgres idle connection timeout (ms) */
-	@Env('DB_POSTGRESDB_IDLE_CONNECTION_TIMEOUT')
-	idleTimeoutMs: number = 30_000;
-
 	@Nested
 	ssl: PostgresSSLConfig;
 }
@@ -140,33 +131,15 @@ export class SqliteConfig {
 	executeVacuumOnStartup: boolean = false;
 }
 
-const dbTypeSchema = z.enum(['sqlite', 'mariadb', 'mysqldb', 'postgresdb']);
-type DbType = z.infer<typeof dbTypeSchema>;
-
 @Config
 export class DatabaseConfig {
 	/** Type of database to use */
-	@Env('DB_TYPE', dbTypeSchema)
-	type: DbType = 'sqlite';
-
-	/**
-	 * Is true if the default sqlite data source of TypeORM is used, as opposed
-	 * to any other (e.g. postgres)
-	 * This also returns false if n8n's new pooled sqlite data source is used.
-	 */
-	get isLegacySqlite() {
-		return this.type === 'sqlite' && this.sqlite.poolSize === 0;
-	}
+	@Env('DB_TYPE')
+	type: 'sqlite' | 'mariadb' | 'mysqldb' | 'postgresdb' = 'sqlite';
 
 	/** Prefix for table names */
 	@Env('DB_TABLE_PREFIX')
 	tablePrefix: string = '';
-
-	/**
-	 * The interval in seconds to ping the database to check if the connection is still alive.
-	 */
-	@Env('DB_PING_INTERVAL_SECONDS')
-	pingIntervalSeconds: number = 2;
 
 	@Nested
 	logging: LoggingConfig;

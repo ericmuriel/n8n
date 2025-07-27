@@ -1,19 +1,17 @@
 <script lang="ts" setup>
-import CopyInput from '@/components/CopyInput.vue';
-import { useDocumentTitle } from '@/composables/useDocumentTitle';
-import { useLoadingService } from '@/composables/useLoadingService';
-import { useMessage } from '@/composables/useMessage';
-import { usePageRedirectionHelper } from '@/composables/usePageRedirectionHelper';
-import { useToast } from '@/composables/useToast';
+import { computed, reactive, ref, onMounted } from 'vue';
+import type { Rule, RuleGroup } from '@n8n/design-system/types';
 import { MODAL_CONFIRM } from '@/constants';
 import { useSourceControlStore } from '@/stores/sourceControl.store';
-import type { SshKeyTypes } from '@/types/sourceControl.types';
+import { useToast } from '@/composables/useToast';
+import { useLoadingService } from '@/composables/useLoadingService';
+import { useI18n } from '@/composables/useI18n';
+import { useMessage } from '@/composables/useMessage';
+import { useDocumentTitle } from '@/composables/useDocumentTitle';
+import CopyInput from '@/components/CopyInput.vue';
 import type { TupleToUnion } from '@/utils/typeHelpers';
-import type { Rule, RuleGroup } from '@n8n/design-system/types';
-import { useI18n } from '@n8n/i18n';
-import type { Validatable } from '@n8n/design-system';
-import { computed, onMounted, reactive, ref } from 'vue';
-import { I18nT } from 'vue-i18n';
+import type { SshKeyTypes } from '@/types/sourceControl.types';
+import { usePageRedirectionHelper } from '@/composables/usePageRedirectionHelper';
 
 const locale = useI18n();
 const sourceControlStore = useSourceControlStore();
@@ -96,11 +94,11 @@ const onSave = async () => {
 	loadingService.stopLoading();
 };
 
-const onSelect = (b: Validatable) => {
+const onSelect = async (b: string) => {
 	if (b === sourceControlStore.preferences.branchName) {
 		return;
 	}
-	sourceControlStore.preferences.branchName = b as string;
+	sourceControlStore.preferences.branchName = b;
 };
 
 const goToUpgrade = () => {
@@ -136,7 +134,7 @@ const repoUrlValidationRules: Array<Rule | RuleGroup> = [
 		name: 'MATCH_REGEX',
 		config: {
 			regex:
-				/^(?:git@|ssh:\/\/git@|[\w-]+@)(?:[\w.-]+|\[[0-9a-fA-F:]+])(?::\d+)?[:\/][\w\-~.]+(?:\/[\w\-~.]+)*(?:\.git)?(?:\/.*)?$/,
+				/^(?:git@|ssh:\/\/git@|[\w-]+@)(?:[\w.-]+|\[[0-9a-fA-F:]+])(?::\d+)?[:\/][\w\-~]+(?:\/[\w\-~]+)*(?:\.git)?(?:\/.*)?$/,
 			message: locale.baseText('settings.sourceControl.repoUrlInvalid'),
 		},
 	},
@@ -182,8 +180,7 @@ const refreshBranches = async () => {
 	}
 };
 
-const onSelectSshKeyType = (value: Validatable) => {
-	const sshKeyType = value as TupleToUnion<SshKeyTypes>;
+const onSelectSshKeyType = async (sshKeyType: TupleToUnion<SshKeyTypes>) => {
 	if (sshKeyType === sourceControlStore.preferences.keyGeneratorType) {
 		return;
 	}
@@ -200,14 +197,14 @@ const onSelectSshKeyType = (value: Validatable) => {
 			v-if="sourceControlStore.isEnterpriseSourceControlEnabled"
 			data-test-id="source-control-content-licensed"
 		>
-			<n8n-callout theme="secondary" icon="info" class="mt-2xl mb-l">
-				<I18nT keypath="settings.sourceControl.description" tag="span" scope="global">
+			<n8n-callout theme="secondary" icon="info-circle" class="mt-2xl mb-l">
+				<i18n-t keypath="settings.sourceControl.description" tag="span">
 					<template #link>
 						<a :href="locale.baseText('settings.sourceControl.docs.url')" target="_blank">
 							{{ locale.baseText('settings.sourceControl.description.link') }}
 						</a>
 					</template>
-				</I18nT>
+				</i18n-t>
 			</n8n-callout>
 			<n8n-heading size="xlarge" tag="h2" class="mb-s">{{
 				locale.baseText('settings.sourceControl.gitConfig')
@@ -218,7 +215,7 @@ const onSelectSshKeyType = (value: Validatable) => {
 					<n8n-form-input
 						id="repoUrl"
 						v-model="sourceControlStore.preferences.repositoryUrl"
-						label=""
+						label
 						class="ml-0"
 						name="repoUrl"
 						validate-on-blur
@@ -232,7 +229,7 @@ const onSelectSshKeyType = (value: Validatable) => {
 						:class="$style.disconnectButton"
 						type="tertiary"
 						size="large"
-						icon="trash-2"
+						icon="trash"
 						data-test-id="source-control-disconnect-button"
 						@click="onDisconnect"
 						>{{ locale.baseText('settings.sourceControl.button.disconnect') }}</n8n-button
@@ -246,7 +243,7 @@ const onSelectSshKeyType = (value: Validatable) => {
 						v-if="!isConnected"
 						id="keyGeneratorType"
 						:class="$style.sshKeyTypeSelect"
-						label=""
+						label
 						type="select"
 						name="keyGeneratorType"
 						data-test-id="source-control-ssh-key-type-select"
@@ -268,7 +265,7 @@ const onSelectSshKeyType = (value: Validatable) => {
 						v-if="!isConnected"
 						size="large"
 						type="tertiary"
-						icon="refresh-cw"
+						icon="sync"
 						data-test-id="source-control-refresh-ssh-key-button"
 						@click="refreshSshKey"
 					>
@@ -276,7 +273,7 @@ const onSelectSshKeyType = (value: Validatable) => {
 					</n8n-button>
 				</div>
 				<n8n-notice type="info" class="mt-s">
-					<I18nT keypath="settings.sourceControl.sshKeyDescription" tag="span" scope="global">
+					<i18n-t keypath="settings.sourceControl.sshKeyDescription" tag="span">
 						<template #link>
 							<a
 								:href="locale.baseText('settings.sourceControl.docs.setup.ssh.url')"
@@ -284,7 +281,7 @@ const onSelectSshKeyType = (value: Validatable) => {
 								>{{ locale.baseText('settings.sourceControl.sshKeyDescriptionLink') }}</a
 							>
 						</template>
-					</I18nT>
+					</i18n-t>
 				</n8n-notice>
 			</div>
 			<n8n-button
@@ -306,7 +303,7 @@ const onSelectSshKeyType = (value: Validatable) => {
 					<div :class="$style.branchSelection">
 						<n8n-form-input
 							id="branchName"
-							label=""
+							label
 							type="select"
 							name="branchName"
 							class="mb-s"
@@ -327,7 +324,7 @@ const onSelectSshKeyType = (value: Validatable) => {
 							<n8n-button
 								size="small"
 								type="tertiary"
-								icon="refresh-cw"
+								icon="sync"
 								square
 								:class="$style.refreshBranches"
 								data-test-id="source-control-refresh-branches-button"
@@ -339,11 +336,11 @@ const onSelectSshKeyType = (value: Validatable) => {
 						v-model="sourceControlStore.preferences.branchReadOnly"
 						:class="$style.readOnly"
 					>
-						<I18nT keypath="settings.sourceControl.protected" tag="span" scope="global">
+						<i18n-t keypath="settings.sourceControl.protected" tag="span">
 							<template #bold>
 								<strong>{{ locale.baseText('settings.sourceControl.protected.bold') }}</strong>
 							</template>
-						</I18nT>
+						</i18n-t>
 					</n8n-checkbox>
 				</div>
 				<div :class="$style.group">

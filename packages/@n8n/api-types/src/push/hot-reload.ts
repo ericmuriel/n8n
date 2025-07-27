@@ -1,19 +1,19 @@
-export type NodeTypeData = {
+type NodeTypeData = {
 	name: string;
 	version: number;
 };
 
-export type ReloadNodeType = {
+type ReloadNodeType = {
 	type: 'reloadNodeType';
 	data: NodeTypeData;
 };
 
-export type RemoveNodeType = {
+type RemoveNodeType = {
 	type: 'removeNodeType';
 	data: NodeTypeData;
 };
 
-export type NodeDescriptionUpdated = {
+type NodeDescriptionUpdated = {
 	type: 'nodeDescriptionUpdated';
 	data: {};
 };

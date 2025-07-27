@@ -3,7 +3,10 @@
     "properties": {
         "date": {
             "type": "string"
+        },
+        "totalUsers": {
+            "type": "string"
         }
     },
-    "version": 3
+    "version": 1
 }

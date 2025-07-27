@@ -1,11 +1,11 @@
-import { GlobalConfig } from '@n8n/config';
-import { Get, RestController } from '@n8n/decorators';
 import type { Request } from 'express';
 import { access } from 'fs/promises';
 import { join } from 'path';
 
+import config from '@/config';
 import { NODES_BASE_DIR } from '@/constants';
 import { CredentialTypes } from '@/credential-types';
+import { Get, RestController } from '@/decorators';
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
 import { InternalServerError } from '@/errors/response-errors/internal-server.error';
 
@@ -18,10 +18,7 @@ export declare namespace TranslationRequest {
 
 @RestController('/')
 export class TranslationController {
-	constructor(
-		private readonly credentialTypes: CredentialTypes,
-		private readonly globalConfig: GlobalConfig,
-	) {}
+	constructor(private readonly credentialTypes: CredentialTypes) {}
 
 	@Get('/credential-translation')
 	async getCredentialTranslation(req: TranslationRequest.Credential) {
@@ -30,7 +27,7 @@ export class TranslationController {
 		if (!this.credentialTypes.recognizes(credentialType))
 			throw new BadRequestError(`Invalid Credential type: "${credentialType}"`);
 
-		const { defaultLocale } = this.globalConfig;
+		const defaultLocale = config.getEnv('defaultLocale');
 		const translationPath = join(
 			CREDENTIAL_TRANSLATIONS_DIR,
 			defaultLocale,

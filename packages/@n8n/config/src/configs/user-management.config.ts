@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 import { Config, Env, Nested } from '../decorators';
 
 @Config
@@ -64,20 +62,13 @@ export class TemplateConfig {
 	/** Overrides default HTML template for notifying that credentials were shared (use full path) */
 	@Env('N8N_UM_EMAIL_TEMPLATES_CREDENTIALS_SHARED')
 	'credentials-shared': string = '';
-
-	/** Overrides default HTML template for notifying that credentials were shared (use full path) */
-	@Env('N8N_UM_EMAIL_TEMPLATES_PROJECT_SHARED')
-	'project-shared': string = '';
 }
-
-const emailModeSchema = z.enum(['', 'smtp']);
-type EmailMode = z.infer<typeof emailModeSchema>;
 
 @Config
 class EmailConfig {
 	/** How to send emails */
-	@Env('N8N_EMAIL_MODE', emailModeSchema)
-	mode: EmailMode = 'smtp';
+	@Env('N8N_EMAIL_MODE')
+	mode: '' | 'smtp' = 'smtp';
 
 	@Nested
 	smtp: SmtpConfig;

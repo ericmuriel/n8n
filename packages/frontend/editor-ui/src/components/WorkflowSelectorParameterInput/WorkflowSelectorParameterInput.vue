@@ -10,7 +10,7 @@ import type {
 	NodeParameterValue,
 	ResourceLocatorModes,
 } from 'n8n-workflow';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import ResourceLocatorDropdown from '@/components/ResourceLocator/ResourceLocatorDropdown.vue';
 import ParameterIssues from '@/components/ParameterIssues.vue';
 import { onClickOutside } from '@vueuse/core';
@@ -21,11 +21,10 @@ import { useWorkflowResourcesLocator } from './useWorkflowResourcesLocator';
 import { useProjectsStore } from '@/stores/projects.store';
 import { useTelemetry } from '@/composables/useTelemetry';
 import { VIEWS } from '@/constants';
-import { SAMPLE_SUBWORKFLOW_TRIGGER_ID, SAMPLE_SUBWORKFLOW_WORKFLOW } from '@/constants.workflows';
-import type { WorkflowDataCreate } from '@n8n/rest-api-client/api/workflows';
-import { useDocumentVisibility } from '@/composables/useDocumentVisibility';
+import { SAMPLE_SUBWORKFLOW_WORKFLOW } from '@/constants.workflows';
+import type { IWorkflowDataCreate } from '@/Interface';
 
-export interface Props {
+interface Props {
 	modelValue: INodeParameterResourceLocator;
 	eventBus?: EventBus;
 	inputSize?: 'small' | 'mini' | 'medium' | 'large' | 'xlarge';
@@ -36,7 +35,7 @@ export interface Props {
 	forceShowExpression?: boolean;
 	parameterIssues?: string[];
 	parameter: INodeProperties;
-	sampleWorkflow?: WorkflowDataCreate;
+	sampleWorkflow?: IWorkflowDataCreate;
 	newResourceLabel?: string;
 }
 
@@ -83,8 +82,6 @@ const { hideDropdown, isDropdownVisible, showDropdown } = useWorkflowResourceLoc
 	inputRef,
 );
 
-const { onDocumentVisible } = useDocumentVisibility();
-
 const {
 	hasMoreWorkflowsToLoad,
 	isLoadingResources,
@@ -122,9 +119,9 @@ const getCreateResourceLabel = computed(() => {
 	});
 });
 
-const valueToDisplay = computed<INodeParameterResourceLocator['value']>(() => {
+const valueToDisplay = computed<NodeParameterValue>(() => {
 	if (typeof props.modelValue !== 'object') {
-		return props.modelValue ?? '';
+		return props.modelValue;
 	}
 
 	if (isListMode.value) {
@@ -142,10 +139,6 @@ const placeholder = computed(() => {
 	return i18n.baseText('resourceLocator.id.placeholder');
 });
 
-const showOpenResourceLink = computed(() => {
-	return !props.isValueExpression && props.modelValue.value;
-});
-
 function setWidth() {
 	const containerRef = container.value as HTMLElement | undefined;
 	if (containerRef) {
@@ -153,25 +146,21 @@ function setWidth() {
 	}
 }
 
-function onInputChange(workflowId: NodeParameterValue): void {
-	if (typeof workflowId !== 'string') return;
+function onInputChange(value: NodeParameterValue): void {
+	if (typeof value !== 'string') return;
 
-	const params: INodeParameterResourceLocator = {
-		__rl: true,
-		value: workflowId,
-		mode: selectedMode.value,
-	};
+	const params: INodeParameterResourceLocator = { __rl: true, value, mode: selectedMode.value };
 	if (isListMode.value) {
-		const resource = workflowsStore.getWorkflowById(workflowId);
+		const resource = workflowsStore.getWorkflowById(value);
 		if (resource?.name) {
-			params.cachedResultName = getWorkflowName(workflowId);
+			params.cachedResultName = getWorkflowName(value);
 		}
 	}
 	emit('update:modelValue', params);
 }
 
 function onListItemSelected(value: NodeParameterValue) {
-	telemetry.track('User chose sub-workflow', {});
+	telemetry.track('User chose sub-workflow', {}, { withPostHog: true });
 	onInputChange(value);
 	hideDropdown();
 }
@@ -202,24 +191,7 @@ function openWorkflow() {
 	window.open(getWorkflowUrl(props.modelValue.value?.toString() ?? ''), '_blank');
 }
 
-async function refreshCachedWorkflow() {
-	if (!props.modelValue || props.modelValue.mode !== 'list' || !props.modelValue.value) {
-		return;
-	}
-
-	const workflowId = props.modelValue.value;
-	try {
-		await workflowsStore.fetchWorkflow(`${workflowId}`);
-		onInputChange(workflowId);
-	} catch (e) {
-		// keep old cached value
-	}
-}
-
-onDocumentVisible(refreshCachedWorkflow);
-
 onMounted(() => {
-	void refreshCachedWorkflow();
 	window.addEventListener('resize', setWidth);
 	setWidth();
 	void setWorkflowsResources();
@@ -251,20 +223,17 @@ const onAddResourceClicked = async () => {
 		(w) => w.name && new RegExp(workflowName).test(w.name),
 	);
 
-	const workflow: WorkflowDataCreate = {
+	const workflow: IWorkflowDataCreate = {
 		...sampleWorkflow,
 		name: `${workflowName} ${sampleSubWorkflows.length + 1}`,
 	};
 	if (projectId) {
 		workflow.projectId = projectId;
 	}
-	telemetry.track('User clicked create new sub-workflow button', {});
+	telemetry.track('User clicked create new sub-workflow button', {}, { withPostHog: true });
 
 	const newWorkflow = await workflowsStore.createNewWorkflow(workflow);
-	const { href } = router.resolve({
-		name: VIEWS.WORKFLOW,
-		params: { name: newWorkflow.id, nodeId: SAMPLE_SUBWORKFLOW_TRIGGER_ID },
-	});
+	const { href } = router.resolve({ name: VIEWS.WORKFLOW, params: { name: newWorkflow.id } });
 	await reloadWorkflows();
 	onInputChange(newWorkflow.id);
 	hideDropdown();
@@ -295,7 +264,7 @@ const onAddResourceClicked = async () => {
 			}"
 			:width="width"
 			:event-bus="eventBus"
-			:model-value="modelValue.value"
+			:value="modelValue"
 			@update:model-value="onListItemSelected"
 			@filter="onSearchFilter"
 			@load-more="populateNextWorkflowsPage"
@@ -314,13 +283,7 @@ const onAddResourceClicked = async () => {
 					[$style.multipleModes]: true,
 				}"
 			>
-				<div
-					:class="{
-						[$style.background]: true,
-						[$style.backgroundWithIssuesAndShowResourceLink]:
-							showOpenResourceLink && parameterIssues?.length,
-					}"
-				/>
+				<div :class="$style.background"></div>
 				<div :class="$style.modeSelector">
 					<n8n-select
 						:model-value="selectedMode"
@@ -409,13 +372,9 @@ const onAddResourceClicked = async () => {
 						:issues="parameterIssues"
 						:class="$style['parameter-issues']"
 					/>
-					<div
-						v-if="showOpenResourceLink"
-						:class="$style.openResourceLink"
-						data-test-id="rlc-open-resource-link"
-					>
+					<div v-if="!isValueExpression && modelValue.value" :class="$style.openResourceLink">
 						<n8n-link theme="text" @click.stop="openWorkflow()">
-							<n8n-icon icon="external-link" :title="'Open resource link'" />
+							<font-awesome-icon icon="external-link-alt" :title="'Open resource link'" />
 						</n8n-link>
 					</div>
 				</div>

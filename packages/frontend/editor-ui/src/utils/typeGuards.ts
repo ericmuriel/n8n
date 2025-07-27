@@ -1,24 +1,23 @@
 import type {
+	INodeParameterResourceLocator,
 	INodeTypeDescription,
 	NodeConnectionType,
 	TriggerPanelDefinition,
 } from 'n8n-workflow';
 import { nodeConnectionTypes } from 'n8n-workflow';
-import type {
-	IExecutionResponse,
-	ICredentialsResponse,
-	NewCredentialsModal,
-	CredentialsResource,
-	FolderResource,
-	Resource,
-	VariableResource,
-	WorkflowResource,
-} from '@/Interface';
+import type { IExecutionResponse, ICredentialsResponse, NewCredentialsModal } from '@/Interface';
 import type { Connection as VueFlowConnection } from '@vue-flow/core';
 import type { RouteLocationRaw } from 'vue-router';
 import type { CanvasConnectionMode } from '@/types';
 import { canvasConnectionModes } from '@/types';
 import type { ComponentPublicInstance } from 'vue';
+import type {
+	CredentialsResource,
+	FolderResource,
+	Resource,
+	VariableResource,
+	WorkflowResource,
+} from '@/components/layouts/ResourcesListLayout.vue';
 
 /*
 	Type guards used in editor-ui project
@@ -27,6 +26,10 @@ import type { ComponentPublicInstance } from 'vue';
 export const checkExhaustive = (value: never): never => {
 	throw new Error(`Unhandled value: ${value}`);
 };
+
+export function isResourceLocatorValue(value: unknown): value is INodeParameterResourceLocator {
+	return Boolean(typeof value === 'object' && value && 'mode' in value && 'value' in value);
+}
 
 export function isNotNull<T>(value: T | null): value is T {
 	return value !== null;

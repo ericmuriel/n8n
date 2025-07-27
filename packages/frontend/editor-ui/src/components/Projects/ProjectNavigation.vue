@@ -1,14 +1,12 @@
 <script lang="ts" setup>
-import { computed, onBeforeMount } from 'vue';
+import { computed } from 'vue';
 import type { IMenuItem } from '@n8n/design-system/types';
-import { useI18n } from '@n8n/i18n';
+import { useI18n } from '@/composables/useI18n';
 import { VIEWS } from '@/constants';
 import { useProjectsStore } from '@/stores/projects.store';
 import type { ProjectListItem } from '@/types/projects.types';
 import { useGlobalEntityCreation } from '@/composables/useGlobalEntityCreation';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useUsersStore } from '@/stores/users.store';
-import { ElMenu } from 'element-plus';
 
 type Props = {
 	collapsed: boolean;
@@ -22,37 +20,25 @@ const globalEntityCreation = useGlobalEntityCreation();
 
 const projectsStore = useProjectsStore();
 const settingsStore = useSettingsStore();
-const usersStore = useUsersStore();
 
 const isCreatingProject = computed(() => globalEntityCreation.isCreatingProject.value);
 const displayProjects = computed(() => globalEntityCreation.displayProjects.value);
+// TODO: Once we remove the feature flag, we can remove this computed property
 const isFoldersFeatureEnabled = computed(() => settingsStore.isFoldersFeatureEnabled);
-const hasMultipleVerifiedUsers = computed(
-	() => usersStore.allUsers.filter((user) => user.isPendingUser === false).length > 1,
-);
 
 const home = computed<IMenuItem>(() => ({
 	id: 'home',
 	label: locale.baseText('projects.menu.overview'),
-	icon: 'house',
+	icon: 'home',
 	route: {
 		to: { name: VIEWS.HOMEPAGE },
 	},
 }));
 
-const shared = computed<IMenuItem>(() => ({
-	id: 'shared',
-	label: locale.baseText('projects.menu.shared'),
-	icon: 'share',
-	route: {
-		to: { name: VIEWS.SHARED_WITH_ME },
-	},
-}));
-
-const getProjectMenuItem = (project: ProjectListItem): IMenuItem => ({
+const getProjectMenuItem = (project: ProjectListItem) => ({
 	id: project.id,
-	label: project.name ?? '',
-	icon: project.icon as IMenuItem['icon'],
+	label: project.name,
+	icon: project.icon,
 	route: {
 		to: {
 			name: VIEWS.PROJECTS_WORKFLOWS,
@@ -76,18 +62,6 @@ const personalProject = computed<IMenuItem>(() => ({
 const showAddFirstProject = computed(
 	() => projectsStore.isTeamProjectFeatureEnabled && !displayProjects.value.length,
 );
-
-const activeTabId = computed(() => {
-	return (
-		(Array.isArray(projectsStore.projectNavActiveId)
-			? projectsStore.projectNavActiveId[0]
-			: projectsStore.projectNavActiveId) ?? undefined
-	);
-});
-
-onBeforeMount(async () => {
-	await usersStore.fetchUsers();
-});
 </script>
 
 <template>
@@ -96,28 +70,9 @@ onBeforeMount(async () => {
 			<N8nMenuItem
 				:item="home"
 				:compact="props.collapsed"
-				:active-tab="activeTabId"
+				:active-tab="projectsStore.projectNavActiveId"
 				mode="tabs"
 				data-test-id="project-home-menu-item"
-			/>
-			<N8nMenuItem
-				v-if="projectsStore.isTeamProjectFeatureEnabled || isFoldersFeatureEnabled"
-				:item="personalProject"
-				:compact="props.collapsed"
-				:active-tab="activeTabId"
-				mode="tabs"
-				data-test-id="project-personal-menu-item"
-			/>
-			<N8nMenuItem
-				v-if="
-					(projectsStore.isTeamProjectFeatureEnabled || isFoldersFeatureEnabled) &&
-					hasMultipleVerifiedUsers
-				"
-				:item="shared"
-				:compact="props.collapsed"
-				:active-tab="activeTabId"
-				mode="tabs"
-				data-test-id="project-shared-menu-item"
 			/>
 		</ElMenu>
 		<hr v-if="projectsStore.isTeamProjectFeatureEnabled" class="mt-m mb-m" />
@@ -129,12 +84,12 @@ onBeforeMount(async () => {
 		>
 			<span>{{ locale.baseText('projects.menu.title') }}</span>
 			<N8nTooltip
-				v-if="projectsStore.canCreateProjects"
 				placement="right"
 				:disabled="projectsStore.hasPermissionToCreateProjects"
 				:content="locale.baseText('projects.create.permissionDenied')"
 			>
 				<N8nButton
+					v-if="projectsStore.canCreateProjects"
 					icon="plus"
 					text
 					data-test-id="project-plus-button"
@@ -150,6 +105,13 @@ onBeforeMount(async () => {
 			:class="$style.projectItems"
 		>
 			<N8nMenuItem
+				:item="personalProject"
+				:compact="props.collapsed"
+				:active-tab="projectsStore.projectNavActiveId"
+				mode="tabs"
+				data-test-id="project-personal-menu-item"
+			/>
+			<N8nMenuItem
 				v-for="project in displayProjects"
 				:key="project.id"
 				:class="{
@@ -157,18 +119,18 @@ onBeforeMount(async () => {
 				}"
 				:item="getProjectMenuItem(project)"
 				:compact="props.collapsed"
-				:active-tab="activeTabId"
+				:active-tab="projectsStore.projectNavActiveId"
 				mode="tabs"
 				data-test-id="project-menu-item"
 			/>
 		</ElMenu>
 		<N8nTooltip
-			v-if="showAddFirstProject"
 			placement="right"
 			:disabled="projectsStore.hasPermissionToCreateProjects"
 			:content="locale.baseText('projects.create.permissionDenied')"
 		>
 			<N8nButton
+				v-if="showAddFirstProject"
 				:class="[
 					$style.addFirstProjectBtn,
 					{
@@ -181,7 +143,7 @@ onBeforeMount(async () => {
 				data-test-id="add-first-project-button"
 				@click="globalEntityCreation.createProject"
 			>
-				<span>{{ locale.baseText('projects.menu.addFirstProject') }}</span>
+				{{ locale.baseText('projects.menu.addFirstProject') }}
 			</N8nButton>
 		</N8nTooltip>
 		<hr v-if="projectsStore.isTeamProjectFeatureEnabled" class="mb-m" />
@@ -250,7 +212,6 @@ onBeforeMount(async () => {
 	&.collapsed {
 		> span:last-child {
 			display: none;
-			margin: 0 var(--spacing-s) var(--spacing-m);
 		}
 	}
 }

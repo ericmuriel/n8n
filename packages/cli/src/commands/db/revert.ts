@@ -1,12 +1,14 @@
-import { Logger } from '@n8n/backend-common';
-import type { Migration } from '@n8n/db';
-import { wrapMigration, DbConnectionOptions } from '@n8n/db';
-import { Command } from '@n8n/decorators';
 import { Container } from '@n8n/di';
 // eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
 import type { DataSourceOptions as ConnectionOptions } from '@n8n/typeorm';
 // eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
 import { MigrationExecutor, DataSource as Connection } from '@n8n/typeorm';
+import { Command, Flags } from '@oclif/core';
+import { Logger } from 'n8n-core';
+
+import { getConnectionOptions } from '@/databases/config';
+import type { Migration } from '@/databases/types';
+import { wrapMigration } from '@/databases/utils/migration-helpers';
 
 // This function is extracted to make it easier to unit test it.
 // Mocking turned into a mess due to this command using typeorm and the db
@@ -59,18 +61,26 @@ export async function main(
 	await connection.destroy();
 }
 
-@Command({
-	name: 'db:revert',
-	description: 'Revert last database migration',
-})
-export class DbRevertMigrationCommand {
+export class DbRevertMigrationCommand extends Command {
+	static description = 'Revert last database migration';
+
+	static examples = ['$ n8n db:revert'];
+
+	static flags = {
+		help: Flags.help({ char: 'h' }),
+	};
+
+	protected logger = Container.get(Logger);
+
 	private connection: Connection;
 
-	constructor(private readonly logger: Logger) {}
+	async init() {
+		await this.parse(DbRevertMigrationCommand);
+	}
 
 	async run() {
 		const connectionOptions: ConnectionOptions = {
-			...Container.get(DbConnectionOptions).getOptions(),
+			...getConnectionOptions(),
 			subscribers: [],
 			synchronize: false,
 			migrationsRun: false,
@@ -96,6 +106,6 @@ export class DbRevertMigrationCommand {
 	protected async finally(error: Error | undefined) {
 		if (this.connection?.isInitialized) await this.connection.destroy();
 
-		process.exit(error ? 1 : 0);
+		this.exit(error ? 1 : 0);
 	}
 }

@@ -5,27 +5,23 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute } from 'vue-router';
 import LoadingView from '@/views/LoadingView.vue';
 import BannerStack from '@/components/banners/BannerStack.vue';
+import AskAssistantChat from '@/components/AskAssistant/AskAssistantChat.vue';
 import Modals from '@/components/Modals.vue';
 import Telemetry from '@/components/Telemetry.vue';
-import AskAssistantFloatingButton from '@/components/AskAssistant/Chat/AskAssistantFloatingButton.vue';
-import AssistantsHub from '@/components/AskAssistant/AssistantsHub.vue';
-import { loadLanguage } from '@n8n/i18n';
+import AskAssistantFloatingButton from '@/components/AskAssistant/AskAssistantFloatingButton.vue';
+import { loadLanguage } from '@/plugins/i18n';
 import { APP_MODALS_ELEMENT_ID, HIRING_BANNER, VIEWS } from '@/constants';
-import { useRootStore } from '@n8n/stores/useRootStore';
+import { useRootStore } from '@/stores/root.store';
 import { useAssistantStore } from '@/stores/assistant.store';
-import { useBuilderStore } from '@/stores/builder.store';
 import { useUIStore } from '@/stores/ui.store';
 import { useUsersStore } from '@/stores/users.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useHistoryHelper } from '@/composables/useHistoryHelper';
 import { useStyles } from './composables/useStyles';
-import { locale } from '@n8n/design-system';
-import axios from 'axios';
 
 const route = useRoute();
 const rootStore = useRootStore();
 const assistantStore = useAssistantStore();
-const builderStore = useBuilderStore();
 const uiStore = useUIStore();
 const usersStore = useUsersStore();
 const settingsStore = useSettingsStore();
@@ -38,15 +34,11 @@ useHistoryHelper(route);
 const loading = ref(true);
 const defaultLocale = computed(() => rootStore.defaultLocale);
 const isDemoMode = computed(() => route.name === VIEWS.DEMO);
-const showAssistantFloatingButton = computed(
-	() =>
-		assistantStore.canShowAssistantButtonsOnCanvas && !assistantStore.hideAssistantFloatingButton,
-);
+const showAssistantButton = computed(() => assistantStore.canShowAssistantButtonsOnCanvas);
 const hasContentFooter = ref(false);
 const appGrid = ref<Element | null>(null);
 
 const assistantSidebarWidth = computed(() => assistantStore.chatWidth);
-const builderSidebarWidth = computed(() => builderStore.chatWidth);
 
 onMounted(async () => {
 	setAppZIndexes();
@@ -73,8 +65,9 @@ const updateGridWidth = async () => {
 		uiStore.appGridDimensions = { width, height };
 	}
 };
+
 // As assistant sidebar width changes, recalculate the total width regularly
-watch([assistantSidebarWidth, builderSidebarWidth], async () => {
+watch(assistantSidebarWidth, async () => {
 	await updateGridWidth();
 });
 
@@ -84,15 +77,9 @@ watch(route, (r) => {
 	);
 });
 
-watch(
-	defaultLocale,
-	(newLocale) => {
-		void loadLanguage(newLocale);
-		void locale.use(newLocale);
-		axios.defaults.headers.common['Accept-Language'] = newLocale;
-	},
-	{ immediate: true },
-);
+watch(defaultLocale, (newLocale) => {
+	void loadLanguage(newLocale);
+});
 </script>
 
 <template>
@@ -132,9 +119,9 @@ watch(
 				<Modals />
 			</div>
 			<Telemetry />
-			<AskAssistantFloatingButton v-if="showAssistantFloatingButton" />
+			<AskAssistantFloatingButton v-if="showAssistantButton" />
 		</div>
-		<AssistantsHub />
+		<AskAssistantChat />
 	</div>
 </template>
 

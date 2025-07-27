@@ -1,15 +1,10 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
 import nock from 'nock';
 
-describe('Test DiscordV2, webhook => sendLegacy', () => {
-	const credentials = {
-		discordWebhookApi: {
-			webhookUri: 'https://discord.com/webhook',
-		},
-	};
+import { testWorkflows } from '@test/nodes/Helpers';
 
-	nock(credentials.discordWebhookApi.webhookUri)
-		.post('?wait=true')
+describe('Test DiscordV2, webhook => sendLegacy', () => {
+	nock('https://discord.com')
+		.post('/webhook?wait=true')
 		.reply(200, {
 			id: '1168768986385747999',
 			type: 0,
@@ -49,8 +44,6 @@ describe('Test DiscordV2, webhook => sendLegacy', () => {
 			webhook_id: '1153265494955135077',
 		});
 
-	new NodeTestHarness().setupTests({
-		credentials,
-		workflowFiles: ['sendLegacy.workflow.json'],
-	});
+	const workflows = ['nodes/Discord/test/v2/node/webhook/sendLegacy.workflow.json'];
+	testWorkflows(workflows);
 });

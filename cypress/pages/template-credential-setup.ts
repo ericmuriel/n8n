@@ -1,4 +1,5 @@
 import { CredentialsModal, MessageBox } from './modals';
+import { overrideFeatureFlag } from '../composables/featureFlags';
 import * as formStep from '../composables/setup-template-form-step';
 
 const credentialsModal = new CredentialsModal();
@@ -9,14 +10,15 @@ export const getters = {
 	skipLink: () => cy.get('a:contains("Skip")'),
 	title: (title: string) => cy.get(`h1:contains(${title})`),
 	infoCallout: () => cy.getByTestId('info-callout'),
+};
 
-	namePreview: () =>
-		cy.getByTestId('credential-name').find('span[data-test-id=inline-edit-preview]'),
-	nameInput: () => cy.getByTestId('credential-name').find('input'),
+export const enableTemplateCredentialSetupFeatureFlag = () => {
+	overrideFeatureFlag('017_template_credential_setup_v2', true);
 };
 
 export const visitTemplateCredentialSetupPage = (templateId: number) => {
 	cy.visit(`templates/${templateId}/setup`);
+	enableTemplateCredentialSetupFeatureFlag();
 
 	formStep.getFormStep().eq(0).should('be.visible');
 };
@@ -26,8 +28,7 @@ export const visitTemplateCredentialSetupPage = (templateId: number) => {
  */
 export const fillInDummyCredentialsForApp = (appName: string) => {
 	formStep.getCreateAppCredentialsButton(appName).click();
-	credentialsModal.getters.namePreview().click();
-	credentialsModal.getters.nameInput().type('test');
+	credentialsModal.getters.editCredentialModal().find('input:first()').type('test');
 	credentialsModal.actions.save(false);
 	credentialsModal.actions.close();
 };

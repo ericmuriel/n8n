@@ -75,33 +75,6 @@ export async function jiraSoftwareCloudApiRequest(
 	}
 }
 
-export function handlePagination(
-	body: any,
-	query: IDataObject,
-	paginationType: 'offset' | 'token',
-	responseData?: any,
-): boolean {
-	if (!responseData) {
-		if (paginationType === 'offset') {
-			query.startAt = 0;
-			query.maxResults = 100;
-		} else {
-			body.maxResults = 100;
-		}
-
-		return true;
-	}
-
-	if (paginationType === 'offset') {
-		const nextStartAt = (responseData.startAt as number) + (responseData.maxResults as number);
-		query.startAt = nextStartAt;
-		return nextStartAt < responseData.total;
-	} else {
-		body.nextPageToken = responseData.nextPageToken as string;
-		return !!responseData.nextPageToken;
-	}
-}
-
 export async function jiraSoftwareCloudApiRequestAllItems(
 	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions,
 	propertyName: string,
@@ -109,17 +82,25 @@ export async function jiraSoftwareCloudApiRequestAllItems(
 	method: IHttpRequestMethods,
 	body: any = {},
 	query: IDataObject = {},
-	paginationType: 'offset' | 'token' = 'offset',
 ): Promise<any> {
 	const returnData: IDataObject[] = [];
 
 	let responseData;
-	let hasNextPage = handlePagination(body, query, paginationType);
+
+	query.startAt = 0;
+	body.startAt = 0;
+	query.maxResults = 100;
+	body.maxResults = 100;
+
 	do {
 		responseData = await jiraSoftwareCloudApiRequest.call(this, endpoint, method, body, query);
 		returnData.push.apply(returnData, responseData[propertyName] as IDataObject[]);
-		hasNextPage = handlePagination(body, query, paginationType, responseData);
-	} while (hasNextPage);
+		query.startAt = (responseData.startAt as number) + (responseData.maxResults as number);
+		body.startAt = (responseData.startAt as number) + (responseData.maxResults as number);
+	} while (
+		(responseData.startAt as number) + (responseData.maxResults as number) <
+		responseData.total
+	);
 
 	return returnData;
 }

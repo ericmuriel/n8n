@@ -1,21 +1,18 @@
 import type { DismissBannerRequestDto, OwnerSetupRequestDto } from '@n8n/api-types';
-import type { Logger } from '@n8n/backend-common';
-import type {
-	AuthenticatedRequest,
-	User,
-	PublicUser,
-	SettingsRepository,
-	UserRepository,
-} from '@n8n/db';
 import type { Response } from 'express';
 import { mock } from 'jest-mock-extended';
+import type { Logger } from 'n8n-core';
 
 import type { AuthService } from '@/auth/auth.service';
 import config from '@/config';
 import { OwnerController } from '@/controllers/owner.controller';
+import type { User } from '@/databases/entities/user';
+import type { SettingsRepository } from '@/databases/repositories/settings.repository';
+import type { UserRepository } from '@/databases/repositories/user.repository';
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
 import type { EventService } from '@/events/event.service';
-import type { BannerService } from '@/services/banner.service';
+import type { PublicUser } from '@/interfaces';
+import type { AuthenticatedRequest } from '@/requests';
 import type { PasswordUtility } from '@/services/password.utility';
 import type { UserService } from '@/services/user.service';
 
@@ -26,7 +23,6 @@ describe('OwnerController', () => {
 	const logger = mock<Logger>();
 	const eventService = mock<EventService>();
 	const authService = mock<AuthService>();
-	const bannerService = mock<BannerService>();
 	const userService = mock<UserService>();
 	const userRepository = mock<UserRepository>();
 	const settingsRepository = mock<SettingsRepository>();
@@ -37,7 +33,6 @@ describe('OwnerController', () => {
 		eventService,
 		settingsRepository,
 		authService,
-		bannerService,
 		userService,
 		passwordUtility,
 		mock(),
@@ -69,7 +64,7 @@ describe('OwnerController', () => {
 				authIdentities: [],
 			});
 			const browserId = 'test-browser-id';
-			const req = mock<AuthenticatedRequest>({ user, browserId, authInfo: { usedMfa: false } });
+			const req = mock<AuthenticatedRequest>({ user, browserId });
 			const res = mock<Response>();
 			const payload = mock<OwnerSetupRequestDto>({
 				email: 'valid@email.com',
@@ -88,7 +83,7 @@ describe('OwnerController', () => {
 				where: { role: 'global:owner' },
 			});
 			expect(userRepository.save).toHaveBeenCalledWith(user, { transaction: false });
-			expect(authService.issueCookie).toHaveBeenCalledWith(res, user, false, browserId);
+			expect(authService.issueCookie).toHaveBeenCalledWith(res, user, browserId);
 			expect(settingsRepository.update).toHaveBeenCalledWith(
 				{ key: 'userManagement.isInstanceOwnerSetUp' },
 				{ value: JSON.stringify(true) },
@@ -105,7 +100,7 @@ describe('OwnerController', () => {
 
 			const result = await controller.dismissBanner(mock(), mock(), payload);
 
-			expect(bannerService.dismissBanner).not.toHaveBeenCalled();
+			expect(settingsRepository.dismissBanner).not.toHaveBeenCalled();
 			expect(result).toBeUndefined();
 		});
 
@@ -114,7 +109,7 @@ describe('OwnerController', () => {
 
 			await controller.dismissBanner(mock(), mock(), payload);
 
-			expect(bannerService.dismissBanner).toHaveBeenCalledWith('TRIAL');
+			expect(settingsRepository.dismissBanner).toHaveBeenCalledWith({ bannerName: 'TRIAL' });
 		});
 	});
 });

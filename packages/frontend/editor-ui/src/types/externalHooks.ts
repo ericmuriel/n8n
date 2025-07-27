@@ -6,7 +6,6 @@ import type {
 	INodeProperties,
 	INodeTypeDescription,
 	ITelemetryTrackProperties,
-	NodeConnectionType,
 	NodeParameterValue,
 	NodeParameterValueType,
 } from 'n8n-workflow';
@@ -17,9 +16,9 @@ import type {
 	INodeUpdatePropertiesInformation,
 	IPersonalizationLatestVersion,
 	IWorkflowDb,
+	IWorkflowTemplateNode,
 	NodeFilterType,
 } from '@/Interface';
-import type { IWorkflowTemplateNode } from '@n8n/rest-api-client/api/templates';
 import type { ComponentPublicInstance } from 'vue';
 import type { useWebhooksStore } from '@/stores/webhooks.store';
 
@@ -103,7 +102,6 @@ export interface ExternalHooks {
 			ExternalHooksMethod<{
 				source?: string;
 				mode: string;
-				connectionType?: NodeConnectionType;
 				createNodeActive: boolean;
 			}>
 		>;

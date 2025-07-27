@@ -1,6 +1,12 @@
 {
     "type": "object",
     "properties": {
+        "number": {
+            "type": "string"
+        },
+        "short_description": {
+            "type": "string"
+        },
         "state": {
             "type": "string"
         },
@@ -11,6 +17,9 @@
             "type": "string"
         },
         "sys_created_on": {
+            "type": "string"
+        },
+        "sys_id": {
             "type": "string"
         },
         "sys_mod_count": {
@@ -26,5 +35,5 @@
             "type": "string"
         }
     },
-    "version": 4
+    "version": 1
 }

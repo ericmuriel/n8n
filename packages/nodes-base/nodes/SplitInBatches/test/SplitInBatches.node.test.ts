@@ -1,5 +1,4 @@
-import { NodeTestHarness } from '@nodes-testing/node-test-harness';
+import { testWorkflows, getWorkflowFilenames } from '@test/nodes/Helpers';
+const workflows = getWorkflowFilenames(__dirname);
 
-describe('Execute SplitInBatches Node', () => {
-	new NodeTestHarness().setupTests();
-});
+describe('Execute SplitInBatches Node', () => testWorkflows(workflows));

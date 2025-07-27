@@ -12,7 +12,19 @@
         },
         "_updateTime": {
             "type": "string"
+        },
+        "campaigns": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "name": {
+            "type": "string"
+        },
+        "phone": {
+            "type": "string"
         }
     },
-    "version": 2
+    "version": 1
 }

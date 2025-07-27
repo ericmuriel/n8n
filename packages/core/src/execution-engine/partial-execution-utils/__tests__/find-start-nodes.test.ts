@@ -557,7 +557,6 @@ describe('findStartNodes', () => {
 						executionStatus: 'success',
 						executionTime: 0,
 						startTime: 0,
-						executionIndex: 0,
 						source: [],
 						data: { main: [[], [{ json: { name: 'loop' } }]] },
 					},

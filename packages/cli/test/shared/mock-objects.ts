@@ -1,11 +1,15 @@
+import { randomInt } from 'n8n-workflow';
+
+import { CredentialsEntity } from '@/databases/entities/credentials-entity';
+import { Project } from '@/databases/entities/project';
+import { User } from '@/databases/entities/user';
+
 import {
 	randomCredentialPayload,
 	randomEmail,
 	randomName,
 	uniqueId,
-} from '@n8n/backend-test-utils';
-import { CredentialsEntity, Project, User } from '@n8n/db';
-import { randomInt } from 'n8n-workflow';
+} from '../integration/shared/random';
 
 export const mockCredential = (): CredentialsEntity =>
 	Object.assign(new CredentialsEntity(), randomCredentialPayload());

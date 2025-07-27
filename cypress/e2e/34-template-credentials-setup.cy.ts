@@ -56,6 +56,7 @@ describe('Template credentials setup', () => {
 
 	it('can be opened from template collection page', () => {
 		visitTemplateCollectionPage(testData.ecommerceStarterPack);
+		templateCredentialsSetupPage.enableTemplateCredentialSetupFeatureFlag();
 		clickUseWorkflowButtonByTitle('Promote new Shopify products');
 
 		templateCredentialsSetupPage.getters
