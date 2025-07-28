@@ -110,7 +110,7 @@ export class EndpointsConfig {
 
 	/** Whether to disable production webhooks on the main process, when using webhook-specific processes. */
 	@Env('N8N_DISABLE_PRODUCTION_MAIN_PROCESS')
-	disableProductionWebhooksOnMainProcess: boolean = false;
+	disableProductionWebhooksOnMainProcess: boolean = true;
 
 	/** Colon-delimited list of additional endpoints to not open the UI on. */
 	@Env('N8N_ADDITIONAL_NON_UI_ROUTES')
